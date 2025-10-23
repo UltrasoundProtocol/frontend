@@ -1,12 +1,14 @@
-# Frontend Hooks Integration
+# Frontend Hooks Integration (Next.js API Routes)
 
-This document explains how the frontend hooks are integrated with the Ultrasound Protocol subgraph and Uniswap subgraph to fetch real-time data.
+This document explains how the frontend hooks are integrated with the Ultrasound Protocol subgraph and Uniswap subgraph using Next.js API routes.
 
 ## Overview
 
-The frontend uses custom React hooks to fetch data from:
+The frontend uses Next.js 15 API routes with custom React hooks to fetch data from:
 1. **Ultrasound Protocol Subgraph** - Protocol and user data (TVL, balances, deposits, withdrawals)
 2. **Uniswap V3 Subgraph** - Token prices for WBTC and PAXG
+
+**No Apollo Client required** - Everything uses native `fetch` API.
 
 ## Architecture
 
@@ -16,14 +18,16 @@ The frontend uses custom React hooks to fetch data from:
 └────────┬────────┘
          │
          ├─── useCompleteProtocolData (combines protocol + prices)
-         │    ├─── useProtocolData (Ultrasound SG)
-         │    └─── usePrices (Uniswap SG)
+         │    ├─── useProtocolData → GET /api/protocol
+         │    └─── usePrices → GET /api/prices
          │
-         ├─── useTotalBalance (Ultrasound SG)
-         ├─── useUserAPY (Ultrasound SG)
-         ├─── useGainLoss (Ultrasound SG)
-         ├─── useHoldings (Ultrasound SG)
-         └─── useHistory (Ultrasound SG)
+         └─── User Hooks (all use shared useUserData)
+              └─── useUserData → GET /api/user/[address]
+                   ├─── useTotalBalance
+                   ├─── useUserAPY
+                   ├─── useGainLoss
+                   ├─── useHoldings
+                   └─── useHistory
 ```
 
 ## Setup
@@ -44,13 +48,19 @@ NEXT_PUBLIC_VAULT_ADDRESS=0xYourVaultAddress
 NEXT_PUBLIC_LP_TOKEN_ADDRESS=0xYourLPTokenAddress
 ```
 
-### 2. Apollo Client Configuration
+### 2. API Routes Structure
 
-The Apollo Client is configured in `src/lib/apollo/client.ts` with two separate clients:
-- `ultrasoundClient` - For protocol data
-- `uniswapClient` - For price data
+The API routes are located in `app/api/`:
 
-Both clients are wrapped in the app providers (`app/providers.tsx`).
+- **`app/api/protocol/route.ts`** - Fetches protocol data from Ultrasound subgraph
+- **`app/api/prices/route.ts`** - Fetches token prices from Uniswap subgraph
+- **`app/api/user/[address]/route.ts`** - Fetches user-specific data
+
+All routes use:
+- Native `fetch` API
+- Next.js caching with `revalidate` option
+- Server-side GraphQL queries
+- Proper error handling
 
 ## Available Hooks
 
@@ -96,7 +106,7 @@ const { data, loading, error } = useCompleteProtocolData();
 
 #### `useProtocolData()`
 
-Lower-level hook that queries protocol data from Ultrasound subgraph.
+Lower-level hook that queries protocol data.
 
 ```typescript
 const { protocolData, loading, error, refetch } = useProtocolData();
@@ -124,7 +134,7 @@ const { pricesData, loading, error } = usePrices();
 
 ### User-Specific Hooks
 
-All user hooks accept an optional `userAddress` parameter. If the address is undefined (user not connected), they return empty/zero values.
+All user hooks accept an optional `userAddress` parameter and share a single `useUserData` hook internally for efficiency.
 
 #### `useTotalBalance(userAddress)`
 
@@ -136,7 +146,7 @@ const { lpBalance, totalUnits, loading, error } = useTotalBalance(userAddress);
 
 #### `useUserAPY(userAddress)`
 
-Calculates user's personal APY based on their deposit/withdrawal history.
+Calculates user's personal APY.
 
 ```typescript
 const { userAPY, loading, error } = useUserAPY(userAddress);
@@ -163,13 +173,13 @@ const { gainLoss, loading, error } = useGainLoss(userAddress);
   totalDeposited: number;     // Total amount deposited
   profit: number;             // Profit/loss amount
   profitPercentage: number;   // Profit/loss %
-  isProfit: boolean;          // True if profit, false if loss
+  isProfit: boolean;          // True if profit
 }
 ```
 
 #### `useHoldings(userAddress)`
 
-Gets user's proportional holdings of WBTC and PAXG.
+Gets user's proportional holdings.
 
 ```typescript
 const { holdings, loading, error } = useHoldings(userAddress);
@@ -201,13 +211,11 @@ const { deposits, withdrawals, loading, error } = useHistory(userAddress);
 ```
 1. User visits page
 2. useCompleteProtocolData() hook executes:
-   ├─ Queries Ultrasound subgraph for protocol data
-   └─ Queries Uniswap subgraph for prices
-3. Data is combined and computed metrics are calculated:
-   ├─ TVL = (WBTC balance × WBTC price) + (PAXG balance × PAXG price)
-   ├─ Deviation = |WBTC value / TVL - 0.5| × 100
-   └─ Current Proportion = percentage breakdown
-4. Page renders with live data
+   ├─ Calls /api/protocol (fetches from Ultrasound subgraph)
+   └─ Calls /api/prices (fetches from Uniswap subgraph)
+3. API routes fetch from subgraphs and cache results
+4. Data is combined and computed metrics are calculated
+5. Page renders with live data
 ```
 
 ### User Data Flow
@@ -215,14 +223,38 @@ const { deposits, withdrawals, loading, error } = useHistory(userAddress);
 ```
 1. User connects wallet
 2. userAddress becomes available
-3. User-specific hooks execute:
-   ├─ useTotalBalance → LP balance
-   ├─ useUserAPY → Personal APY calculation
-   ├─ useGainLoss → Profit/loss calculation
-   ├─ useHoldings → Asset holdings breakdown
-   └─ useHistory → Transaction history
-4. Position card updates with user data
+3. useUserData hook executes once:
+   └─ Calls /api/user/[address]
+4. All user hooks (useUserAPY, useGainLoss, etc.) derive from this data
+5. Position card updates with user data
 ```
+
+## API Route Details
+
+### GET /api/protocol
+
+Fetches protocol data from Ultrasound subgraph.
+
+**Caching**: 30 seconds
+**Returns**: Protocol entity + daily snapshots
+
+### GET /api/prices
+
+Fetches current and historical prices from Uniswap subgraph.
+
+**Caching**:
+- Current prices: 30 seconds
+- Historical prices: 5 minutes
+
+**Returns**: Current prices + 24h historical data
+
+### GET /api/user/[address]
+
+Fetches all user data in a single query.
+
+**Parameters**: `address` - User wallet address
+**Caching**: 30 seconds
+**Returns**: User entity with deposits, withdrawals, and protocol data
 
 ## Calculations
 
@@ -265,15 +297,17 @@ Where:
 
 ## Polling
 
-All hooks use Apollo's `pollInterval` option to automatically refresh data:
+All hooks automatically poll their respective endpoints:
 
 - Protocol data: Every 30 seconds
-- User data: Every 30 seconds
-- Prices: Current prices every 30 seconds, historical every 5 minutes
+- User data: Every 30 seconds (single query)
+- Prices: Every 30 seconds
+
+API routes cache responses to minimize subgraph requests.
 
 ## Error Handling
 
-All hooks return an `error` object that can be used for error handling:
+All hooks return an `error` object:
 
 ```typescript
 const { data, loading, error } = useCompleteProtocolData();
@@ -298,7 +332,7 @@ if (loading) {
 
 ## Refetching Data
 
-Some hooks provide a `refetch` function to manually trigger a data refresh:
+Some hooks provide a `refetch` function:
 
 ```typescript
 const { data, refetch } = useProtocolData();
@@ -307,40 +341,52 @@ const { data, refetch } = useProtocolData();
 await refetch();
 ```
 
+## Benefits of Next.js API Routes
+
+1. **No client-side dependencies** - No Apollo Client needed
+2. **Server-side caching** - Reduce subgraph API calls
+3. **Type-safe** - Full TypeScript support
+4. **Better error handling** - Centralized error handling
+5. **SSR compatible** - Works with server components
+6. **Simplified setup** - Just use native fetch
+
 ## Testing
 
-To test with mock data before the subgraph is deployed:
+To test with mock data:
 
-1. Update the subgraph URLs in `.env.local` to point to your test endpoints
+1. Update the subgraph URLs in `.env.local`
 2. Ensure the subgraph is deployed and indexed
-3. Connect a wallet that has interacted with the protocol
-4. Verify data appears correctly in the UI
+3. Start dev server: `npm run dev`
+4. Connect a wallet that has interacted with the protocol
+5. Verify data appears correctly
 
 ## Troubleshooting
 
 ### No data showing
 
-1. Check that subgraph URLs are correct in `.env.local`
+1. Check `.env.local` has correct subgraph URLs
 2. Verify the subgraph is deployed and synced
-3. Check browser console for GraphQL errors
-4. Ensure contract addresses in `src/lib/config.ts` are correct
+3. Check browser console for fetch errors
+4. Verify contract addresses in `src/lib/config.ts`
 
 ### Prices not updating
 
 1. Verify Uniswap subgraph URL is correct
-2. Check that WBTC and PAXG addresses in `src/lib/config.ts` match mainnet addresses
-3. Look for errors in the browser console
+2. Check WBTC/PAXG addresses match mainnet
+3. Look for errors in browser console
+4. Test `/api/prices` endpoint directly
 
 ### User data not showing
 
 1. Ensure wallet is connected
-2. Verify the user has deposited to the vault
-3. Check that the subgraph has indexed the user's transactions
+2. Verify user has deposited to the vault
+3. Check subgraph has indexed user's transactions
+4. Test `/api/user/[address]` endpoint directly
 
 ## Next Steps
 
-1. Deploy the Ultrasound subgraph and update the URL in `.env.local`
-2. Update contract addresses in `src/lib/config.ts`
-3. Test with real data on mainnet or a testnet fork
-4. Add error boundaries and loading states as needed
-5. Implement data caching strategies for better performance
+1. Deploy the Ultrasound subgraph
+2. Update URLs in `.env.local`
+3. Update contract addresses in `src/lib/config.ts`
+4. Test with real data
+5. Add loading states and error boundaries

@@ -1,28 +1,4 @@
-import { useQuery, gql } from '@apollo/client';
-
-const USER_HISTORY_QUERY = gql`
-  query GetUserHistory($address: ID!) {
-    user(id: $address) {
-      deposits(orderBy: timestamp, orderDirection: desc) {
-        id
-        timestamp
-        stablecoinAmount
-        sharesIssued
-        transactionHash
-        valueUSD
-      }
-      withdrawals(orderBy: timestamp, orderDirection: desc) {
-        id
-        timestamp
-        shares
-        asset0Amount
-        asset1Amount
-        transactionHash
-        valueUSD
-      }
-    }
-  }
-`;
+import { useUserData } from './useUserData';
 
 export interface Deposit {
   id: string;
@@ -44,14 +20,11 @@ export interface Withdrawal {
 }
 
 export function useHistory(userAddress: string | undefined) {
-  const { data, loading, error, refetch } = useQuery(USER_HISTORY_QUERY, {
-    variables: { address: userAddress?.toLowerCase() || '' },
-    skip: !userAddress,
-  });
+  const { userData, loading, error, refetch } = useUserData(userAddress);
 
   return {
-    deposits: (data?.user?.deposits || []) as Deposit[],
-    withdrawals: (data?.user?.withdrawals || []) as Withdrawal[],
+    deposits: (userData?.deposits || []) as Deposit[],
+    withdrawals: (userData?.withdrawals || []) as Withdrawal[],
     loading,
     error,
     refetch,

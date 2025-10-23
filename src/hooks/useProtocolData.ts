@@ -1,34 +1,4 @@
-import { useQuery, gql } from '@apollo/client';
-import { useMemo } from 'react';
-
-const PROTOCOL_QUERY = gql`
-  query GetProtocolData {
-    protocol(id: "protocol") {
-      totalValueLocked
-      asset0Balance
-      asset1Balance
-      currentStrategyValue
-      previousStrategyValue
-      strategyValueUpdatedAt
-      totalDeposits
-      totalWithdrawals
-      totalRebalances
-      volume24h
-      daysLive
-      paused
-      targetRatio
-      rebalanceThreshold
-      totalSupply
-    }
-
-    dailySnapshots(first: 7, orderBy: date, orderDirection: desc) {
-      date
-      totalValueLocked
-      depositVolume
-      withdrawalVolume
-    }
-  }
-`;
+import { useEffect, useState } from 'react';
 
 export interface ProtocolData {
   tvl: string;
@@ -54,51 +24,84 @@ export interface ProtocolData {
 }
 
 export function useProtocolData() {
-  const { data, loading, error, refetch } = useQuery(PROTOCOL_QUERY, {
-    pollInterval: 30000, // Poll every 30 seconds
-  });
+  const [protocolData, setProtocolData] = useState<ProtocolData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const protocolData = useMemo((): ProtocolData | null => {
-    if (!data?.protocol) return null;
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/protocol');
 
-    const protocol = data.protocol;
+      if (!response.ok) {
+        throw new Error('Failed to fetch protocol data');
+      }
 
-    // Calculate APY
-    // APY = ((Current_SV / Previous_SV)^(365/Days_Live) - 1) × 100
-    const currentSV = parseFloat(protocol.currentStrategyValue);
-    const previousSV = parseFloat(protocol.previousStrategyValue);
-    const daysLive = parseInt(protocol.daysLive);
+      const data = await response.json();
 
-    let apy = 0;
-    if (previousSV > 0 && daysLive > 0) {
-      const ratio = currentSV / previousSV;
-      const exponent = 365 / daysLive;
-      apy = (Math.pow(ratio, exponent) - 1) * 100;
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const protocol = data.protocol;
+
+      if (!protocol) {
+        setProtocolData(null);
+        return;
+      }
+
+      // Calculate APY
+      const currentSV = parseFloat(protocol.currentStrategyValue);
+      const previousSV = parseFloat(protocol.previousStrategyValue);
+      const daysLive = parseInt(protocol.daysLive);
+
+      let apy = 0;
+      if (previousSV > 0 && daysLive > 0) {
+        const ratio = currentSV / previousSV;
+        const exponent = 365 / daysLive;
+        apy = (Math.pow(ratio, exponent) - 1) * 100;
+      }
+
+      setProtocolData({
+        tvl: protocol.totalValueLocked,
+        asset0Balance: protocol.asset0Balance,
+        asset1Balance: protocol.asset1Balance,
+        apy,
+        deviation: 0, // Will be calculated with prices
+        volume24h: protocol.volume24h,
+        totalDeposits: parseInt(protocol.totalDeposits),
+        totalWithdrawals: parseInt(protocol.totalWithdrawals),
+        totalRebalances: parseInt(protocol.totalRebalances),
+        paused: protocol.paused,
+        targetRatio: parseInt(protocol.targetRatio),
+        rebalanceThreshold: parseInt(protocol.rebalanceThreshold),
+        totalSupply: protocol.totalSupply,
+        daysLive,
+        dailySnapshots: data.dailySnapshots || [],
+      });
+
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error'));
+      setProtocolData(null);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    return {
-      tvl: protocol.totalValueLocked,
-      asset0Balance: protocol.asset0Balance,
-      asset1Balance: protocol.asset1Balance,
-      apy,
-      deviation: 0, // Will be calculated with prices from usePrices hook
-      volume24h: protocol.volume24h,
-      totalDeposits: parseInt(protocol.totalDeposits),
-      totalWithdrawals: parseInt(protocol.totalWithdrawals),
-      totalRebalances: parseInt(protocol.totalRebalances),
-      paused: protocol.paused,
-      targetRatio: parseInt(protocol.targetRatio),
-      rebalanceThreshold: parseInt(protocol.rebalanceThreshold),
-      totalSupply: protocol.totalSupply,
-      daysLive,
-      dailySnapshots: data.dailySnapshots || [],
-    };
-  }, [data]);
+  useEffect(() => {
+    fetchData();
+
+    // Poll every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return {
     protocolData,
     loading,
     error,
-    refetch,
+    refetch: fetchData,
   };
 }

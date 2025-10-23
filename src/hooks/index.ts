@@ -6,3 +6,4 @@ export * from './useHoldings';
 export * from './useHistory';
 export * from './usePrices';
 export * from './useCompleteProtocolData';
+export * from './useUserData';

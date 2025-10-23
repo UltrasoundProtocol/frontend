@@ -1,29 +1,5 @@
-import { useQuery, gql } from '@apollo/client';
 import { useMemo } from 'react';
-
-const USER_APY_QUERY = gql`
-  query GetUserAPY($address: ID!) {
-    user(id: $address) {
-      totalUnits
-      totalDeposited
-      totalWithdrawn
-      firstDepositAt
-      deposits {
-        timestamp
-        stablecoinAmount
-        sharesIssued
-      }
-      withdrawals {
-        timestamp
-        shares
-      }
-    }
-
-    protocol(id: "protocol") {
-      currentStrategyValue
-    }
-  }
-`;
+import { useUserData } from './useUserData';
 
 export interface UserAPYData {
   apy: number;
@@ -33,19 +9,14 @@ export interface UserAPYData {
 }
 
 export function useUserAPY(userAddress: string | undefined) {
-  const { data, loading, error, refetch } = useQuery(USER_APY_QUERY, {
-    variables: { address: userAddress?.toLowerCase() || '' },
-    skip: !userAddress,
-    pollInterval: 30000,
-  });
+  const { userData, loading, error, refetch } = useUserData(userAddress);
 
   const userAPY = useMemo((): UserAPYData | null => {
-    if (!data?.user || !data?.protocol) return null;
+    if (!userData) return null;
 
-    const user = data.user;
-    const currentSV = parseFloat(data.protocol.currentStrategyValue);
-    const totalUnits = parseFloat(user.totalUnits);
-    const totalDeposited = parseFloat(user.totalDeposited);
+    const currentSV = parseFloat(userData.protocol.currentStrategyValue);
+    const totalUnits = parseFloat(userData.totalUnits);
+    const totalDeposited = parseFloat(userData.totalDeposited);
 
     if (totalUnits === 0 || totalDeposited === 0) return null;
 
@@ -56,7 +27,7 @@ export function useUserAPY(userAddress: string | undefined) {
     const weightedAvgEntry = totalDeposited / totalUnits;
 
     // Days since first deposit
-    const firstDepositTimestamp = parseInt(user.firstDepositAt);
+    const firstDepositTimestamp = parseInt(userData.firstDepositAt);
     const daysSinceFirstDeposit =
       (Date.now() / 1000 - firstDepositTimestamp) / 86400;
 
@@ -73,7 +44,7 @@ export function useUserAPY(userAddress: string | undefined) {
       totalDeposited,
       daysSinceFirstDeposit,
     };
-  }, [data]);
+  }, [userData]);
 
   return {
     userAPY,

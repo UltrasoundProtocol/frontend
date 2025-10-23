@@ -11,8 +11,6 @@ import { rabbyWallet } from '@rainbow-me/rainbowkit/wallets';
 import { WagmiProvider } from 'wagmi';
 import { mainnet, polygon, optimism, arbitrum, base } from 'wagmi/chains';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
-import { ApolloProvider } from '@apollo/client';
-import { ultrasoundClient } from '@/src/lib/apollo/client';
 
 const { wallets } = getDefaultWallets();
 
@@ -36,16 +34,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <ApolloProvider client={ultrasoundClient}>
-          <RainbowKitProvider
-            theme={lightTheme({
-              accentColor: '#D4AF37',
-              accentColorForeground: 'white',
-            })}
-          >
-            {children}
-          </RainbowKitProvider>
-        </ApolloProvider>
+        <RainbowKitProvider
+          theme={lightTheme({
+            accentColor: '#D4AF37',
+            accentColorForeground: 'white',
+          })}
+        >
+          {children}
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
