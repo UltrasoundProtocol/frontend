@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
+import { serializeBigInts } from '@/src/lib/bigint-serializer';
 
 const ULTRASOUND_SUBGRAPH_URL =
   process.env.NEXT_PUBLIC_ULTRASOUND_SUBGRAPH_URL ||
-  'https://api.studio.thegraph.com/query/YOUR_SUBGRAPH_ID/ultrasound-protocol/version/latest';
+  'https://subgraph.satsuma-prod.com/YOUR_ALCHEMY_KEY/ultrasound-protocol-sepolia/api';
 
 const USER_QUERY = `
   query GetUserData($address: ID!) {
@@ -74,7 +75,9 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(data.data);
+    // Serialize BigInt values to strings
+    const serializedData = serializeBigInts(data.data);
+    return NextResponse.json(serializedData);
   } catch (error) {
     console.error('Error fetching user data:', error);
     return NextResponse.json(
