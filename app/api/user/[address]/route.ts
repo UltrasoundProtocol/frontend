@@ -42,10 +42,11 @@ const USER_QUERY = `
 
 export async function GET(
   request: Request,
-  { params }: { params: { address: string } }
+  { params }: { params: Promise<{ address: string }> }
 ) {
   try {
-    const address = params.address.toLowerCase();
+    const { address: rawAddress } = await params;
+    const address = rawAddress.toLowerCase();
 
     const response = await fetch(ULTRASOUND_SUBGRAPH_URL, {
       method: 'POST',
