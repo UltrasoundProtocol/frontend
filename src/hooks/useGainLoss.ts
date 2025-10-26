@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useUserData } from './useUserData';
+import { useCompleteProtocolData } from './useCompleteProtocolData';
 
 export interface GainLossData {
   currentValue: number;
@@ -10,22 +11,42 @@ export interface GainLossData {
 }
 
 export function useGainLoss(userAddress: string | undefined) {
-  const { userData, loading, error, refetch } = useUserData(userAddress);
+  const { userData, loading: userLoading, error: userError, refetch } = useUserData(userAddress);
+  const { data: protocolData, loading: protocolLoading } = useCompleteProtocolData();
 
   const gainLoss = useMemo((): GainLossData | null => {
-    if (!userData) return null;
+    if (!userData || !protocolData) return null;
 
-    const totalUnits = parseFloat(userData.totalUnits);
-    const totalDeposited = parseFloat(userData.totalDeposited);
-    const currentSV = parseFloat(userData.protocol.currentStrategyValue);
+    // Convert from subgraph formats to human-readable numbers
+    // totalUnits: LP tokens with 6 decimals
+    const totalUnits = parseFloat(userData.totalUnits) / 1e6;
 
-    // User_current_value = user.total_units × strategy_value_current
-    const userCurrentValue = totalUnits * currentSV;
+    // totalDeposited: USD value with 18 decimals (BigDecimal)
+    const totalDeposited = parseFloat(userData.totalDeposited) / 1e18;
 
-    // User_profit = User_current_value - User_total_deposited
+    // Calculate vault total value from protocol data
+    // The protocol data already has TVL calculated from asset balances and prices
+    const vaultTotalValue = protocolData.tvl;
+
+    // totalSupply: LP tokens with 6 decimals
+    const totalSupply = parseFloat(userData.protocol.totalSupply) / 1e6;
+
+    // Calculate current value per LP token
+    const valuePerToken = totalSupply > 0 ? vaultTotalValue / totalSupply : 0;
+
+    // User_current_value = user.total_units × value_per_token
+    const userCurrentValue = totalUnits * valuePerToken;
+
+    // Protocol gain/loss: Compare current LP token value to initial value (1:1 with deposits)
+    // When user deposits $X, they get $X worth of LP tokens (assuming no prior gains)
+    // If LP tokens are now worth more/less, that's the protocol gain/loss
+    //
+    // Initial LP value = totalDeposited (what they put in)
+    // Current LP value = userCurrentValue (what their LP tokens are worth now)
+    // Profit = Current - Initial
     const profit = userCurrentValue - totalDeposited;
 
-    // Profit percentage
+    // Profit percentage relative to initial investment
     const profitPercentage = totalDeposited > 0
       ? (profit / totalDeposited) * 100
       : 0;
@@ -37,12 +58,12 @@ export function useGainLoss(userAddress: string | undefined) {
       profitPercentage,
       isProfit: profit >= 0,
     };
-  }, [userData]);
+  }, [userData, protocolData]);
 
   return {
     gainLoss,
-    loading,
-    error,
+    loading: userLoading || protocolLoading,
+    error: userError,
     refetch,
   };
 }

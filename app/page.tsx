@@ -18,7 +18,7 @@ import { PositionCard } from '@/src/features/goldbtc/components/position/positio
 import { ActionTabs } from '@/src/features/goldbtc/components/action/action-tabs';
 import { ActionForm } from '@/src/features/goldbtc/components/action/action-form';
 import { RecentTxList } from '@/src/features/goldbtc/components/transactions/recent-tx-list';
-import { shortAddr } from '@/src/features/goldbtc/utils/format';
+import { shortAddr, fromUSDC, fromBigDecimal } from '@/src/features/goldbtc/utils/format';
 import type { MetricKey } from '@/src/features/goldbtc/types';
 import {
   useCompleteProtocolData,
@@ -254,10 +254,10 @@ export default function Home() {
         day: 'numeric',
         year: 'numeric',
       }),
-      amount: `+$${parseFloat(deposit.stablecoinAmount).toLocaleString('en-US', {
+      amount: `${fromUSDC(deposit.stablecoinAmount).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-      })}`,
+      })} USDC`,
       asset: 'USDC',
     })),
     ...withdrawals.slice(0, 5).map((withdrawal) => ({
@@ -267,7 +267,7 @@ export default function Home() {
         day: 'numeric',
         year: 'numeric',
       }),
-      amount: `-$${parseFloat(withdrawal.valueUSD || '0').toLocaleString('en-US', {
+      amount: `$${fromBigDecimal(withdrawal.valueUSD || '0').toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`,
