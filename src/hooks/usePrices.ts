@@ -35,16 +35,15 @@ export function usePrices() {
 
       const { current, historical } = data;
 
-      if (!current?.wbtcToken || !current?.paxgToken || !current?.bundle) {
+      if (!current?.wbtcToken || !current?.paxgToken) {
         setPricesData(null);
         return;
       }
 
-      const ethPriceUSD = parseFloat(current.bundle.ethPriceUSD);
-
-      // Calculate current prices in USD
-      const wbtcPriceUSD = parseFloat(current.wbtcToken.derivedETH) * ethPriceUSD;
-      const paxgPriceUSD = parseFloat(current.paxgToken.derivedETH) * ethPriceUSD;
+      // Get current prices in USD (already in USD format from oracle)
+      const wbtcPriceUSD = parseFloat(current.wbtcToken.priceUSD || current.wbtcToken.derivedETH * (current.bundle?.ethPriceUSD || 1));
+      const paxgPriceUSD = parseFloat(current.paxgToken.priceUSD || current.paxgToken.derivedETH * (current.bundle?.ethPriceUSD || 1));
+      const ethPriceUSD = current.bundle?.ethPriceUSD ? parseFloat(current.bundle.ethPriceUSD) : 0;
 
       // Get historical prices
       const wbtcPriceYesterday = historical?.wbtcTokenDayData?.[0]?.priceUSD

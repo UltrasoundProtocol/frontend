@@ -27,6 +27,11 @@ import {
   useGainLoss,
   useHoldings,
   useHistory,
+  useUSDCBalance,
+  useWBTCBalance,
+  usePAXGBalance,
+  useVaultDeposit,
+  useVaultWithdraw,
 } from '@/src/hooks';
 import { CONTRACTS } from '@/src/lib/config';
 
@@ -37,6 +42,7 @@ export default function Home() {
     amount: undefined as number | undefined,
     asset: 'USDC',
   });
+  const [needsApproval, setNeedsApproval] = useState(true);
 
   // Get connected wallet address
   const { address: userAddress } = useAccount();
@@ -50,6 +56,34 @@ export default function Home() {
   const { gainLoss } = useGainLoss(userAddress);
   const { holdings: userHoldings } = useHoldings(userAddress);
   const { deposits, withdrawals } = useHistory(userAddress);
+
+  // Fetch token balances for deposit/withdraw
+  const { balanceFormatted: usdcBalance, refetch: refetchUSDC } = useUSDCBalance();
+  const { balanceFormatted: wbtcBalance, refetch: refetchWBTC } = useWBTCBalance();
+  const { balanceFormatted: paxgBalance, refetch: refetchPAXG } = usePAXGBalance();
+
+  // Contract interaction hooks
+  const {
+    depositUSDC,
+    executeDeposit,
+    isApprovePending,
+    isDepositPending,
+    isApproveConfirming,
+    isDepositConfirming,
+    isApproveConfirmed,
+  } = useVaultDeposit();
+
+  const {
+    withdrawFromVault,
+    isWithdrawPending,
+    isWithdrawConfirming,
+  } = useVaultWithdraw();
+
+  // Handle approval confirmation
+  if (isApproveConfirmed && needsApproval && formData.amount) {
+    setNeedsApproval(false);
+    executeDeposit(formData.amount);
+  }
 
   // Full contract address
   const contractAddress = CONTRACTS.VAULT;
@@ -214,18 +248,71 @@ export default function Home() {
 
   const handleFormChange = (fields: { amount?: number; asset?: string }) => {
     setFormData((prev) => ({ ...prev, ...fields }));
+    if (fields.asset) {
+      setNeedsApproval(true);
+    }
+  };
+
+  const getAssetBalance = () => {
+    switch (formData.asset) {
+      case 'USDC':
+        return usdcBalance;
+      case 'WBTC':
+        return wbtcBalance;
+      case 'XAUT':
+        return paxgBalance;
+      default:
+        return 0;
+    }
   };
 
   const handleSelectPct = (pct: number) => {
-    const balance = 5000;
+    const balance = actionTab === 'deposit' ? getAssetBalance() : parseFloat(lpBalance) || 0;
     setFormData((prev) => ({
       ...prev,
       amount: (balance * pct) / 100,
     }));
   };
 
-  const handleSubmit = () => {
-    console.log('Submit:', actionTab, formData);
+  const handleSubmit = async () => {
+    if (!formData.amount || formData.amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    if (!userAddress) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+
+    try {
+      if (actionTab === 'deposit') {
+        if (formData.asset === 'USDC') {
+          if (needsApproval) {
+            await depositUSDC(formData.amount);
+          } else {
+            await executeDeposit(formData.amount);
+          }
+          // Refresh balances after deposit
+          setTimeout(() => {
+            refetchUSDC();
+          }, 2000);
+        } else {
+          toast.error('Only USDC deposits are supported currently');
+        }
+      } else {
+        // Withdraw
+        await withdrawFromVault(formData.amount);
+        // Refresh balances after withdrawal
+        setTimeout(() => {
+          refetchUSDC();
+          refetchWBTC();
+          refetchPAXG();
+        }, 2000);
+      }
+    } catch (error: any) {
+      console.error('Transaction error:', error);
+    }
   };
 
   return (
@@ -300,14 +387,17 @@ export default function Home() {
                 kind={actionTab}
                 amount={formData.amount}
                 asset={formData.asset}
-                balance={5000}
-                min={10}
-                max={250000}
+                balance={actionTab === 'deposit' ? getAssetBalance() : parseFloat(lpBalance) || 0}
+                min={actionTab === 'deposit' ? 1 : 0.01}
+                max={actionTab === 'deposit' ? getAssetBalance() : parseFloat(lpBalance) || 0}
                 receivePreview={
                   formData.amount
-                    ? `${(formData.amount * 0.98).toFixed(2)} BTCGLD LP`
+                    ? actionTab === 'deposit'
+                      ? `~${(formData.amount * 0.98).toFixed(4)} BV-LP`
+                      : `~${(formData.amount * 0.98).toFixed(4)} USDC value`
                     : undefined
                 }
+                disabled={isApprovePending || isDepositPending || isApproveConfirming || isDepositConfirming || isWithdrawPending || isWithdrawConfirming}
                 onChange={handleFormChange}
                 onSelectPct={handleSelectPct}
                 onSubmit={handleSubmit}
