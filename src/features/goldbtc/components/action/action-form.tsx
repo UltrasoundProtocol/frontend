@@ -116,6 +116,13 @@ export function ActionForm({
               {max !== undefined && `Max: $${fmtMoney(max)}`}
             </p>
           )}
+
+          {/* Testnet deposit guidance */}
+          {kind === 'deposit' && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              ⚠️ Testnet: Start with 10-50 USDC. Larger amounts may fail due to limited pool liquidity.
+            </p>
+          )}
         </div>
 
         {/* Validation message */}

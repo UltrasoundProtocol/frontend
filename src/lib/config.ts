@@ -18,7 +18,7 @@ const MAINNET_POOLS = {
   PAXG_USDC: '0x5aE13BAAEF0620FdaE1D355495Dc51a17adb4082' as `0x${string}`,
 } as const;
 
-// Sepolia testnet addresses (deployed for testing)
+// Sepolia testnet addresses (deployed for testing - Updated 2025-10-26)
 const SEPOLIA_CONTRACTS = {
   VAULT: '0x9c6CBd8c945D87c377c6e5BC9B8019c99e73f27C' as `0x${string}`,
   LP_TOKEN: '0xB6428C2a9FD3a7596C16925A9D4Ba574C8F0C44D' as `0x${string}`,
@@ -26,13 +26,13 @@ const SEPOLIA_CONTRACTS = {
   PAXG: '0x5c740231f3de159076c343a7dde67431a77aae11' as `0x${string}`,
   USDC: '0x6e56771c53595862329446629b832b95a5da9d26' as `0x${string}`,
   FEE_COLLECTOR: '0x2eAd46c434E17b6EA9A07eD5961CC23995B11566' as `0x${string}`,
-  ORACLE: '0x2D5c5e6BCD65D15dB9706BF8CBB8c7eB4FE67297' as `0x${string}`,
-  REBALANCER: '0x959f9AC4105a83c27f1fb166E4475D2BBD17DA5E' as `0x${string}`,
+  ORACLE: '0xF22550Eb4F64E8F796FB24AA721B0D865A592D54' as `0x${string}`,  // MockPriceOracle with fixed prices
+  REBALANCER: '0x5094aae517Ab77564350A19396f4d44755646071' as `0x${string}`,  // RebalancerModuleV2 with SwapHelper
 } as const;
 
 const SEPOLIA_POOLS = {
-  WBTC_USDC: '0x3cE823245DCa9f6353C5cD51314F0b2D885AfC9f' as `0x${string}`,
-  PAXG_USDC: '0xd415b691D992Cea05FEb7E684c69c7a85205240F' as `0x${string}`,
+  WBTC_USDC: '0xc7a092ED6e25794634bc4264bDC9991755bC991d' as `0x${string}`,  // New pool with correct price (0.05% fee)
+  PAXG_USDC: '0x8E640764a61A162CA7A370E22f284E570a304703' as `0x${string}`,  // 0.05% fee pool
 } as const;
 
 // Contract addresses - auto-selected based on NEXT_PUBLIC_NETWORK

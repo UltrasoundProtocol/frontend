@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount } from 'wagmi';
@@ -71,6 +71,7 @@ export default function Home() {
     isApproveConfirming,
     isDepositConfirming,
     isApproveConfirmed,
+    isDepositConfirmed,
   } = useVaultDeposit();
 
   const {
@@ -79,11 +80,27 @@ export default function Home() {
     isWithdrawConfirming,
   } = useVaultWithdraw();
 
-  // Handle approval confirmation
-  if (isApproveConfirmed && needsApproval && formData.amount) {
-    setNeedsApproval(false);
-    executeDeposit(formData.amount);
-  }
+  // Handle approval confirmation and auto-execute deposit
+  useEffect(() => {
+    if (isApproveConfirmed && needsApproval && formData.amount) {
+      setNeedsApproval(false);
+      toast.success('Approval confirmed! Executing deposit...');
+      executeDeposit(formData.amount);
+    }
+  }, [isApproveConfirmed, needsApproval, formData.amount, executeDeposit]);
+
+  // Handle deposit confirmation
+  useEffect(() => {
+    if (isDepositConfirmed) {
+      toast.success('Deposit confirmed! Your LP tokens have been minted.');
+      setNeedsApproval(true); // Reset for next deposit
+      setFormData({ amount: undefined, asset: 'USDC' }); // Clear form
+      // Refresh balances
+      setTimeout(() => {
+        refetchUSDC();
+      }, 2000);
+    }
+  }, [isDepositConfirmed, refetchUSDC]);
 
   // Full contract address
   const contractAddress = CONTRACTS.VAULT;
@@ -131,7 +148,21 @@ export default function Home() {
           iconSrc: '/icons/XAUT_Icon.svg',
         },
       ]
-    : [];
+    : [
+        // Placeholder data while loading
+        {
+          symbol: 'WBTC',
+          price: 0,
+          changePct: 0,
+          iconSrc: '/icons/BTC_Icon.svg',
+        },
+        {
+          symbol: 'PAXG',
+          price: 0,
+          changePct: 0,
+          iconSrc: '/icons/XAUT_Icon.svg',
+        },
+      ];
 
   const poolInfo = [
     {
@@ -388,7 +419,7 @@ export default function Home() {
                 amount={formData.amount}
                 asset={formData.asset}
                 balance={actionTab === 'deposit' ? getAssetBalance() : parseFloat(lpBalance) || 0}
-                min={actionTab === 'deposit' ? 1 : 0.01}
+                min={actionTab === 'deposit' ? 10 : 0.01}
                 max={actionTab === 'deposit' ? getAssetBalance() : parseFloat(lpBalance) || 0}
                 receivePreview={
                   formData.amount

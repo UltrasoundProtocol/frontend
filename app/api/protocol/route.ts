@@ -3,7 +3,7 @@ import { serializeBigInts } from '@/src/lib/bigint-serializer';
 
 const ULTRASOUND_SUBGRAPH_URL =
   process.env.NEXT_PUBLIC_ULTRASOUND_SUBGRAPH_URL ||
-  'https://subgraph.satsuma-prod.com/YOUR_ALCHEMY_KEY/ultrasound-protocol-sepolia/api';
+  'https://subgraph.satsuma-prod.com/1fbdab357f8a/giuliano--794168/ultrasound-protocol-sepolia/api';
 
 const PROTOCOL_QUERY = `
   query GetProtocolData {

@@ -82,7 +82,7 @@ export function useVaultDeposit() {
         gas: BigInt(5000000), // Set explicit gas limit (5M gas) to avoid estimation issues
       });
 
-      toast.success('Deposit successful!');
+      // Success will be shown after transaction confirmation
     } catch (error: any) {
       console.error('Deposit error:', error);
       toast.error(error.message || 'Failed to deposit');
