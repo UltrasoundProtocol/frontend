@@ -27,8 +27,9 @@ export function useVaultWithdraw() {
     }
 
     try {
-      // LP tokens have 18 decimals
-      const sharesInWei = parseUnits(shares.toString(), DECIMALS.LP_TOKEN);
+      // LP tokens are minted with 6 decimals (1:1 with USDC)
+      // even though the ERC20 contract technically supports 18 decimals
+      const sharesInWei = parseUnits(shares.toString(), 6);
 
       toast.info('Withdrawing from vault...');
       await withdraw({
@@ -36,9 +37,10 @@ export function useVaultWithdraw() {
         abi: BalancedVaultABI,
         functionName: 'withdraw',
         args: [sharesInWei],
+        gas: BigInt(2000000), // Set explicit gas limit to avoid estimation issues
       });
 
-      toast.success('Withdrawal successful!');
+      // Success toast will be shown by page.tsx after transaction confirmation
     } catch (error: any) {
       console.error('Withdraw error:', error);
       toast.error(error.message || 'Failed to withdraw');

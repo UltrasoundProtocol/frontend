@@ -18,7 +18,7 @@ export function useGainLoss(userAddress: string | undefined) {
     if (!userData || !protocolData) return null;
 
     // Convert from subgraph formats to human-readable numbers
-    // totalUnits: LP tokens with 6 decimals
+    // totalUnits: LP tokens with 6 decimals (vault mints them 1:1 with USDC)
     const totalUnits = parseFloat(userData.totalUnits) / 1e6;
 
     // totalDeposited: USD value with 18 decimals (BigDecimal)
@@ -28,7 +28,7 @@ export function useGainLoss(userAddress: string | undefined) {
     // The protocol data already has TVL calculated from asset balances and prices
     const vaultTotalValue = protocolData.tvl;
 
-    // totalSupply: LP tokens with 6 decimals
+    // totalSupply: LP tokens with 6 decimals (vault mints them 1:1 with USDC)
     const totalSupply = parseFloat(userData.protocol.totalSupply) / 1e6;
 
     // Calculate current value per LP token

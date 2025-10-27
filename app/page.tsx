@@ -51,11 +51,11 @@ export default function Home() {
   const { data: protocolData, loading: protocolLoading } = useCompleteProtocolData();
 
   // Fetch user-specific data (only if wallet is connected)
-  const { lpBalance } = useTotalBalance(userAddress);
-  const { userAPY } = useUserAPY(userAddress);
-  const { gainLoss } = useGainLoss(userAddress);
-  const { holdings: userHoldings } = useHoldings(userAddress);
-  const { deposits, withdrawals } = useHistory(userAddress);
+  const { lpBalance, refetch: refetchBalance } = useTotalBalance(userAddress);
+  const { userAPY, refetch: refetchAPY } = useUserAPY(userAddress);
+  const { gainLoss, refetch: refetchGainLoss } = useGainLoss(userAddress);
+  const { holdings: userHoldings, refetch: refetchHoldings } = useHoldings(userAddress);
+  const { deposits, withdrawals, refetch: refetchHistory } = useHistory(userAddress);
 
   // Fetch token balances for deposit/withdraw
   const { balanceFormatted: usdcBalance, refetch: refetchUSDC } = useUSDCBalance();
@@ -78,6 +78,7 @@ export default function Home() {
     withdrawFromVault,
     isWithdrawPending,
     isWithdrawConfirming,
+    isWithdrawConfirmed,
   } = useVaultWithdraw();
 
   // Handle approval confirmation and auto-execute deposit
@@ -89,18 +90,47 @@ export default function Home() {
     }
   }, [isApproveConfirmed, needsApproval, formData.amount, executeDeposit]);
 
+  // Helper function to refetch all data after transactions
+  const refetchAllData = () => {
+    // Refetch token balances
+    refetchUSDC();
+    refetchWBTC();
+    refetchPAXG();
+
+    // Refetch user data from subgraph (if connected)
+    if (userAddress) {
+      refetchBalance?.();
+      refetchAPY?.();
+      refetchGainLoss?.();
+      refetchHoldings?.();
+      refetchHistory?.();
+    }
+  };
+
   // Handle deposit confirmation
   useEffect(() => {
     if (isDepositConfirmed) {
       toast.success('Deposit confirmed! Your LP tokens have been minted.');
       setNeedsApproval(true); // Reset for next deposit
       setFormData({ amount: undefined, asset: 'USDC' }); // Clear form
-      // Refresh balances
+      // Refresh all data after 3 seconds (allow time for subgraph to index)
       setTimeout(() => {
-        refetchUSDC();
-      }, 2000);
+        refetchAllData();
+      }, 3000);
     }
-  }, [isDepositConfirmed, refetchUSDC]);
+  }, [isDepositConfirmed]);
+
+  // Handle withdrawal confirmation
+  useEffect(() => {
+    if (isWithdrawConfirmed) {
+      toast.success('Withdrawal confirmed! Assets have been sent to your wallet.');
+      setFormData({ amount: undefined, asset: 'USDC' }); // Clear form
+      // Refresh all data after 3 seconds (allow time for subgraph to index)
+      setTimeout(() => {
+        refetchAllData();
+      }, 3000);
+    }
+  }, [isWithdrawConfirmed]);
 
   // Full contract address
   const contractAddress = CONTRACTS.VAULT;
@@ -324,22 +354,14 @@ export default function Home() {
           } else {
             await executeDeposit(formData.amount);
           }
-          // Refresh balances after deposit
-          setTimeout(() => {
-            refetchUSDC();
-          }, 2000);
+          // Data will auto-refresh via useEffect when isDepositConfirmed becomes true
         } else {
           toast.error('Only USDC deposits are supported currently');
         }
       } else {
         // Withdraw
         await withdrawFromVault(formData.amount);
-        // Refresh balances after withdrawal
-        setTimeout(() => {
-          refetchUSDC();
-          refetchWBTC();
-          refetchPAXG();
-        }, 2000);
+        // Data will auto-refresh via useEffect when isWithdrawConfirmed becomes true
       }
     } catch (error: any) {
       console.error('Transaction error:', error);

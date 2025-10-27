@@ -14,7 +14,7 @@ export function useHoldings(userAddress: string | undefined) {
   const holdings = useMemo((): HoldingsData | null => {
     if (!userData) return null;
 
-    // LP tokens have 6 decimals, stored as raw values in subgraph
+    // LP tokens have 6 decimals (vault mints them 1:1 with USDC), stored as raw BigInt values in subgraph
     const lpBalanceRaw = parseFloat(userData.lpBalance);
     const totalSupplyRaw = parseFloat(userData.protocol.totalSupply);
 

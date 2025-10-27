@@ -50,7 +50,7 @@ export const DECIMALS = {
   WBTC: 8,
   PAXG: 18,
   USDC: 6,
-  LP_TOKEN: 18,
+  LP_TOKEN: 6, // LP tokens are minted 1:1 with USDC (6 decimals)
 } as const;
 
 // Uniswap V3 pool addresses for price queries
