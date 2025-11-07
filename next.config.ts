@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Turbopack configuration for Next.js 16+
+  // Empty config to silence the warning about webpack config
+  turbopack: {},
+
+  // Keep webpack config for backward compatibility when using --webpack flag
   webpack: (config) => {
     config.externals.push('pino-pretty', 'encoding');
     config.resolve.fallback = {

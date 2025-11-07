@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 interface GoldHeaderProps {
@@ -28,14 +29,18 @@ export function GoldHeader({
             href={brand.href}
             className="flex items-center gap-2 font-semibold text-foreground"
           >
-            {brand.logoSrc && (
-              <img
+            {brand.logoSrc ? (
+              <Image
                 src={brand.logoSrc}
                 alt={brand.name}
-                className="h-8 w-8"
+                width={200}
+                height={40}
+                className="h-10 w-auto"
+                priority
               />
+            ) : (
+              <span className="text-lg">{brand.name}</span>
             )}
-            <span className="text-lg">{brand.name}</span>
           </Link>
 
           {/* Connect Button */}

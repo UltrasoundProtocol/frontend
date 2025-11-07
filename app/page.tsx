@@ -34,6 +34,7 @@ import {
   usePAXGBalance,
   useVaultDeposit,
   useVaultWithdraw,
+  useRebalanceHistory,
 } from '@/src/hooks';
 import { CONTRACTS } from '@/src/lib/config';
 
@@ -61,6 +62,9 @@ export default function Home() {
   const { gainLoss, refetch: refetchGainLoss } = useGainLoss(userAddress);
   const { holdings: userHoldings, refetch: refetchHoldings } = useHoldings(userAddress);
   const { deposits, withdrawals, refetch: refetchHistory } = useHistory(userAddress);
+
+  // Fetch rebalance history
+  const { rebalanceEvents } = useRebalanceHistory(10);
 
   // Fetch token balances for deposit/withdraw
   const { balanceFormatted: usdcBalance, refetch: refetchUSDC } = useUSDCBalance();
@@ -157,9 +161,9 @@ export default function Home() {
       label: 'Deviation',
       value: protocolData ? (
         <>
-          Ratio: {protocolData.ratioDeviation.toFixed(2)}%
+          Vault Ratio: {protocolData.ratioDeviation.toFixed(2)}%
           <br />
-          Price: {protocolData.priceDeviation.toFixed(2)}%
+          Price Ratio: {protocolData.priceDeviation.toFixed(2)}%
         </>
       ) : (
         <>
@@ -175,12 +179,12 @@ export default function Home() {
       label: 'Current Proportion',
       value: protocolData ? (
         <>
-          <div>WBTC {protocolData.currentProportion.wbtc.toFixed(0)}% / PAXG {protocolData.currentProportion.paxg.toFixed(0)}%</div>
-          <div className="text-sm font-light text-muted-foreground mt-1">
+          <span className="block">WBTC {protocolData.currentProportion.wbtc.toFixed(0)}% / PAXG {protocolData.currentProportion.paxg.toFixed(0)}%</span>
+          <span className="block text-sm font-light text-muted-foreground mt-1">
             {protocolData.wbtcBalance.toFixed(4)} WBTC
             <br />
             {protocolData.paxgBalance.toFixed(4)} PAXG
-          </div>
+          </span>
         </>
       ) : (
         'WBTC 50% / PAXG 50%'
@@ -191,43 +195,43 @@ export default function Home() {
 
   const tokenPrices = protocolData
     ? [
-        {
-          symbol: 'WBTC',
-          price: protocolData.wbtcPrice,
-          changePct: protocolData.wbtcPriceChange,
-          iconSrc: '/icons/BTC_Icon.svg',
-        },
-        {
-          symbol: 'PAXG',
-          price: protocolData.paxgPrice,
-          changePct: protocolData.paxgPriceChange,
-          iconSrc: '/icons/XAUT_Icon.svg',
-        },
-      ]
+      {
+        symbol: 'WBTC',
+        price: protocolData.wbtcPrice,
+        changePct: protocolData.wbtcPriceChange,
+        iconSrc: '/icons/BTC_Icon.svg',
+      },
+      {
+        symbol: 'PAXG',
+        price: protocolData.paxgPrice,
+        changePct: protocolData.paxgPriceChange,
+        iconSrc: '/icons/XAUT_Icon.svg',
+      },
+    ]
     : [
-        // Placeholder data while loading
-        {
-          symbol: 'WBTC',
-          price: 0,
-          changePct: 0,
-          iconSrc: '/icons/BTC_Icon.svg',
-        },
-        {
-          symbol: 'PAXG',
-          price: 0,
-          changePct: 0,
-          iconSrc: '/icons/XAUT_Icon.svg',
-        },
-      ];
+      // Placeholder data while loading
+      {
+        symbol: 'WBTC',
+        price: 0,
+        changePct: 0,
+        iconSrc: '/icons/BTC_Icon.svg',
+      },
+      {
+        symbol: 'PAXG',
+        price: 0,
+        changePct: 0,
+        iconSrc: '/icons/XAUT_Icon.svg',
+      },
+    ];
 
   const poolInfo = [
     {
       label: '24h Volume' as const,
       value: protocolData
         ? `$${parseFloat(protocolData.volume24h || '0').toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}`
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`
         : '$0.00',
     },
     {
@@ -256,43 +260,22 @@ export default function Home() {
     ? extractChartLabels(rawProtocolData.dailySnapshots)
     : [];
 
-  const rebalanceHistory = [
-    {
-      date: 'Oct 15, 2024',
-      action: 'Rebalance',
-      route: 'WBTC → XAUT',
-      amount: '1.2 WBTC',
-    },
-    {
-      date: 'Oct 12, 2024',
-      action: 'Rebalance',
-      route: 'XAUT → WBTC',
-      amount: '43.3 XAUT',
-    },
-    {
-      date: 'Oct 8, 2024',
-      action: 'Rebalance',
-      route: 'WBTC → XAUT',
-      amount: '0.8 WBTC',
-    },
-  ];
-
   // Prepare user holdings data
   const holdings = userHoldings && protocolData
     ? [
-        {
-          symbol: 'WBTC',
-          qty: userHoldings.asset0Holdings,
-          fiat: userHoldings.asset0Holdings * protocolData.wbtcPrice,
-          iconSrc: '/icons/BTC_Icon.svg',
-        },
-        {
-          symbol: 'PAXG',
-          qty: userHoldings.asset1Holdings,
-          fiat: userHoldings.asset1Holdings * protocolData.paxgPrice,
-          iconSrc: '/icons/XAUT_Icon.svg',
-        },
-      ]
+      {
+        symbol: 'WBTC',
+        qty: userHoldings.asset0Holdings,
+        fiat: userHoldings.asset0Holdings * protocolData.wbtcPrice,
+        iconSrc: '/icons/BTC_Icon.svg',
+      },
+      {
+        symbol: 'PAXG',
+        qty: userHoldings.asset1Holdings,
+        fiat: userHoldings.asset1Holdings * protocolData.paxgPrice,
+        iconSrc: '/icons/XAUT_Icon.svg',
+      },
+    ]
     : [];
 
   // Prepare recent transactions from history
@@ -392,7 +375,7 @@ export default function Home() {
     <GoldShell
       header={
         <GoldHeader
-          brand={{ name: 'ULTRASOUND', href: '/' }}
+          brand={{ name: 'ULTRASOUND', logoSrc: '/Logo_inline.png', href: '/' }}
           connectButton={<ConnectButton />}
         />
       }
@@ -439,7 +422,7 @@ export default function Home() {
           </div>
 
           {/* Rebalance History */}
-          <RebalanceTable rows={rebalanceHistory} />
+          <RebalanceTable rows={rebalanceEvents} />
         </div>
 
         {/* Right Column - Sidebar */}
