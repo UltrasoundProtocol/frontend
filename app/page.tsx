@@ -19,9 +19,11 @@ import { ActionTabs } from '@/src/features/goldbtc/components/action/action-tabs
 import { ActionForm } from '@/src/features/goldbtc/components/action/action-form';
 import { RecentTxList } from '@/src/features/goldbtc/components/transactions/recent-tx-list';
 import { shortAddr, fromUSDC, fromBigDecimal } from '@/src/features/goldbtc/utils/format';
+import { transformDailySnapshotsToChartData, extractChartLabels } from '@/src/features/goldbtc/utils/chartData';
 import type { MetricKey } from '@/src/features/goldbtc/types';
 import {
   useCompleteProtocolData,
+  useProtocolData,
   useTotalBalance,
   useUserAPY,
   useGainLoss,
@@ -49,6 +51,9 @@ export default function Home() {
 
   // Fetch protocol data
   const { data: protocolData, loading: protocolLoading } = useCompleteProtocolData();
+
+  // Also get raw protocol data for dailySnapshots
+  const { protocolData: rawProtocolData } = useProtocolData();
 
   // Fetch user-specific data (only if wallet is connected)
   const { lpBalance, refetch: refetchBalance } = useTotalBalance(userAddress);
@@ -150,15 +155,36 @@ export default function Home() {
     },
     {
       label: 'Deviation',
-      value: protocolData ? `${protocolData.deviation > 0 ? '+' : ''}${protocolData.deviation.toFixed(2)}%` : '0.00%',
-      trend: protocolData && protocolData.deviation > 0 ? ('up' as const) : ('none' as const),
+      value: protocolData ? (
+        <>
+          Ratio: {protocolData.ratioDeviation.toFixed(2)}%
+          <br />
+          Price: {protocolData.priceDeviation.toFixed(2)}%
+        </>
+      ) : (
+        <>
+          Ratio: 0.00%
+          <br />
+          Price: 0.00%
+        </>
+      ),
+      trend: protocolData && protocolData.ratioDeviation > 2 ? ('up' as const) : ('none' as const),
       icon: <Image src="/icons/Deviation_Icon.svg" alt="Deviation" width={16} height={16} />,
     },
     {
       label: 'Current Proportion',
-      value: protocolData
-        ? `WBTC ${protocolData.currentProportion.wbtc.toFixed(0)}% / PAXG ${protocolData.currentProportion.paxg.toFixed(0)}%`
-        : 'WBTC 50% / PAXG 50%',
+      value: protocolData ? (
+        <>
+          <div>WBTC {protocolData.currentProportion.wbtc.toFixed(0)}% / PAXG {protocolData.currentProportion.paxg.toFixed(0)}%</div>
+          <div className="text-sm font-light text-muted-foreground mt-1">
+            {protocolData.wbtcBalance.toFixed(4)} WBTC
+            <br />
+            {protocolData.paxgBalance.toFixed(4)} PAXG
+          </div>
+        </>
+      ) : (
+        'WBTC 50% / PAXG 50%'
+      ),
       icon: <Image src="/icons/Proportion_Icon.svg" alt="Proportion" width={16} height={16} />,
     },
   ];
@@ -220,21 +246,15 @@ export default function Home() {
     },
   ];
 
-  const chartSeries = [
-    {
-      id: 'tvl',
-      label: 'TVL',
-      points: [
-        { x: 'Apr', y: 18 },
-        { x: 'May', y: 22 },
-        { x: 'Jun', y: 28 },
-        { x: 'Jul', y: 30 },
-        { x: 'Aug', y: 29 },
-        { x: 'Sep', y: 33 },
-        { x: 'Oct', y: 35 },
-      ],
-    },
-  ];
+  // Transform daily snapshots into chart data based on selected metric
+  const chartSeries = rawProtocolData?.dailySnapshots
+    ? transformDailySnapshotsToChartData(rawProtocolData.dailySnapshots, selectedMetric)
+    : [];
+
+  // Extract x-axis labels from snapshots
+  const chartLabels = rawProtocolData?.dailySnapshots
+    ? extractChartLabels(rawProtocolData.dailySnapshots)
+    : [];
 
   const rebalanceHistory = [
     {
@@ -413,7 +433,7 @@ export default function Home() {
             <PerformanceChart
               metric={selectedMetric}
               series={chartSeries}
-              xLabels={['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct']}
+              xLabels={chartLabels}
               yLabel=""
             />
           </div>

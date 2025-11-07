@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 interface KpiCardProps {
   label: string;
-  value: string;
+  value: string | ReactNode;
   trend?: 'up' | 'down' | 'none';
   hint?: string;
   icon?: ReactNode;

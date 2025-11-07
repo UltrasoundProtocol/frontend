@@ -18,7 +18,8 @@ export interface CompleteProtocolData {
   tvl: number;
   tvlFormatted: string;
   protocolAPY: number;
-  deviation: number;
+  ratioDeviation: number; // Deviation from 50/50 target
+  priceDeviation: number; // Max price change between assets
   currentProportion: {
     wbtc: number;
     paxg: number;
@@ -53,10 +54,16 @@ export function useCompleteProtocolData() {
     const paxgValueUSD = paxgBalance * pricesData.paxg.price;
     const tvl = wbtcValueUSD + paxgValueUSD;
 
-    // Calculate deviation from 50/50
-    // Deviation = abs(wbtcValueUSD / tvl - 0.5) * 100
+    // Calculate ratio deviation from 50/50
+    // Ratio Deviation = abs(wbtcValueUSD / tvl - 0.5) * 100
     const wbtcRatio = tvl > 0 ? wbtcValueUSD / tvl : 0.5;
-    const deviation = Math.abs(wbtcRatio - 0.5) * 100;
+    const ratioDeviation = Math.abs(wbtcRatio - 0.5) * 100;
+
+    // Calculate price deviation (max 24h price change between the two assets)
+    const priceDeviation = Math.max(
+      Math.abs(pricesData.wbtc.changePct),
+      Math.abs(pricesData.paxg.changePct)
+    );
 
     // Calculate current proportion
     const currentProportion = {
@@ -87,7 +94,8 @@ export function useCompleteProtocolData() {
       tvl,
       tvlFormatted,
       protocolAPY: protocolData?.apy || 0,
-      deviation,
+      ratioDeviation,
+      priceDeviation,
       currentProportion,
 
       // Raw data
