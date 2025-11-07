@@ -20,6 +20,13 @@ export interface ProtocolData {
     totalValueLocked: string;
     depositVolume: string;
     withdrawalVolume: string;
+    strategyValue: string;
+    asset0Balance: string;
+    asset1Balance: string;
+    asset0Price: string;
+    asset1Price: string;
+    currentRatio0: string;
+    currentRatio1: string;
   }>;
 }
 

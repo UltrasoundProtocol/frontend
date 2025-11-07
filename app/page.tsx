@@ -252,7 +252,11 @@ export default function Home() {
 
   // Transform daily snapshots into chart data based on selected metric
   const chartSeries = rawProtocolData?.dailySnapshots
-    ? transformDailySnapshotsToChartData(rawProtocolData.dailySnapshots, selectedMetric)
+    ? transformDailySnapshotsToChartData(
+        rawProtocolData.dailySnapshots,
+        selectedMetric,
+        rawProtocolData.apy // Pass current APY for flat line comparison
+      )
     : [];
 
   // Extract x-axis labels from snapshots

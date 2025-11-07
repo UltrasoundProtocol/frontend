@@ -25,11 +25,18 @@ const PROTOCOL_QUERY = `
       totalSupply
     }
 
-    dailySnapshots(first: 7, orderBy: date, orderDirection: desc) {
+    dailySnapshots(first: 30, orderBy: date, orderDirection: desc) {
       date
       totalValueLocked
       depositVolume
       withdrawalVolume
+      strategyValue
+      asset0Balance
+      asset1Balance
+      asset0Price
+      asset1Price
+      currentRatio0
+      currentRatio1
     }
   }
 `;
