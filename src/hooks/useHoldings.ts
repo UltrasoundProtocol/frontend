@@ -14,7 +14,9 @@ export function useHoldings(userAddress: string | undefined) {
   const holdings = useMemo((): HoldingsData | null => {
     if (!userData) return null;
 
-    // LP tokens have 6 decimals (vault mints them 1:1 with USDC), stored as raw BigInt values in subgraph
+    // NOTE: LP tokens technically have 18 decimals on-chain, but due to a bug in VaultMath.calculateInitialShares(),
+    // they are minted as if they have 6 decimals (1:1 with USDC amount, not scaled up by 10^12).
+    // We display them with 6 decimals to match actual behavior.
     const lpBalanceRaw = parseFloat(userData.lpBalance);
     const totalSupplyRaw = parseFloat(userData.protocol.totalSupply);
 
@@ -37,7 +39,7 @@ export function useHoldings(userAddress: string | undefined) {
     // PAXG: 18 decimals
     const userAsset1 = userAsset1Raw / 1e18;
 
-    // Convert LP balance to human-readable format (6 decimals)
+    // Convert LP balance to display format (treating as 6 decimals to match actual minting behavior)
     const lpBalance = lpBalanceRaw / 1e6;
 
     return {
