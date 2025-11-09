@@ -43,7 +43,6 @@ export default function Home() {
   const [actionTab, setActionTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [formData, setFormData] = useState({
     amount: undefined as number | undefined,
-    asset: 'USDC',
   });
   const [needsApproval, setNeedsApproval] = useState(true);
 
@@ -51,7 +50,7 @@ export default function Home() {
   const { address: userAddress } = useAccount();
 
   // Fetch protocol data
-  const { data: protocolData, loading: protocolLoading } = useCompleteProtocolData();
+  const { data: protocolData } = useCompleteProtocolData();
 
   // Also get raw protocol data for dailySnapshots
   const { protocolData: rawProtocolData } = useProtocolData();
@@ -68,8 +67,8 @@ export default function Home() {
 
   // Fetch token balances for deposit/withdraw
   const { balanceFormatted: usdcBalance, refetch: refetchUSDC } = useUSDCBalance();
-  const { balanceFormatted: wbtcBalance, refetch: refetchWBTC } = useWBTCBalance();
-  const { balanceFormatted: paxgBalance, refetch: refetchPAXG } = usePAXGBalance();
+  const { refetch: refetchWBTC } = useWBTCBalance();
+  const { refetch: refetchPAXG } = usePAXGBalance();
 
   // Contract interaction hooks
   const {
@@ -121,7 +120,7 @@ export default function Home() {
     if (isDepositConfirmed) {
       toast.success('Deposit confirmed! Your LP tokens have been minted.');
       setNeedsApproval(true); // Reset for next deposit
-      setFormData({ amount: undefined, asset: 'USDC' }); // Clear form
+      setFormData({ amount: undefined }); // Clear form
       // Refresh all data after 3 seconds (allow time for subgraph to index)
       setTimeout(() => {
         refetchAllData();
@@ -133,7 +132,7 @@ export default function Home() {
   useEffect(() => {
     if (isWithdrawConfirmed) {
       toast.success('Withdrawal confirmed! Assets have been sent to your wallet.');
-      setFormData({ amount: undefined, asset: 'USDC' }); // Clear form
+      setFormData({ amount: undefined }); // Clear form
       // Refresh all data after 3 seconds (allow time for subgraph to index)
       setTimeout(() => {
         refetchAllData();
@@ -314,28 +313,12 @@ export default function Home() {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 10);
 
-  const handleFormChange = (fields: { amount?: number; asset?: string }) => {
+  const handleFormChange = (fields: { amount?: number }) => {
     setFormData((prev) => ({ ...prev, ...fields }));
-    if (fields.asset) {
-      setNeedsApproval(true);
-    }
-  };
-
-  const getAssetBalance = () => {
-    switch (formData.asset) {
-      case 'USDC':
-        return usdcBalance;
-      case 'WBTC':
-        return wbtcBalance;
-      case 'XAUT':
-        return paxgBalance;
-      default:
-        return 0;
-    }
   };
 
   const handleSelectPct = (pct: number) => {
-    const balance = actionTab === 'deposit' ? getAssetBalance() : parseFloat(lpBalance) || 0;
+    const balance = actionTab === 'deposit' ? usdcBalance : parseFloat(lpBalance) || 0;
     setFormData((prev) => ({
       ...prev,
       amount: (balance * pct) / 100,
@@ -355,18 +338,15 @@ export default function Home() {
 
     try {
       if (actionTab === 'deposit') {
-        if (formData.asset === 'USDC') {
-          if (needsApproval) {
-            await depositUSDC(formData.amount);
-          } else {
-            await executeDeposit(formData.amount);
-          }
-          // Data will auto-refresh via useEffect when isDepositConfirmed becomes true
+        // Only USDC deposits are supported
+        if (needsApproval) {
+          await depositUSDC(formData.amount);
         } else {
-          toast.error('Only USDC deposits are supported currently');
+          await executeDeposit(formData.amount);
         }
+        // Data will auto-refresh via useEffect when isDepositConfirmed becomes true
       } else {
-        // Withdraw
+        // Withdraw - returns both WBTC and PAXG
         await withdrawFromVault(formData.amount);
         // Data will auto-refresh via useEffect when isWithdrawConfirmed becomes true
       }
@@ -446,10 +426,9 @@ export default function Home() {
               <ActionForm
                 kind={actionTab}
                 amount={formData.amount}
-                asset={formData.asset}
-                balance={actionTab === 'deposit' ? getAssetBalance() : parseFloat(lpBalance) || 0}
+                balance={actionTab === 'deposit' ? usdcBalance : parseFloat(lpBalance) || 0}
                 min={actionTab === 'deposit' ? 10 : 0.01}
-                max={actionTab === 'deposit' ? getAssetBalance() : parseFloat(lpBalance) || 0}
+                max={actionTab === 'deposit' ? usdcBalance : parseFloat(lpBalance) || 0}
                 receivePreview={
                   formData.amount
                     ? actionTab === 'deposit'

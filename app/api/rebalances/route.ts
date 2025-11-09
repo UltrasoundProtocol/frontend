@@ -45,7 +45,7 @@ export async function GET(request: Request) {
         query: REBALANCES_QUERY,
         variables: { first },
       }),
-      next: { revalidate: 30 }, // Cache for 30 seconds
+      cache: 'no-store', // Disable caching for real-time data
     });
 
     if (!response.ok) {

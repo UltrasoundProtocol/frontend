@@ -51,7 +51,7 @@ export async function GET() {
       body: JSON.stringify({
         query: PROTOCOL_QUERY,
       }),
-      next: { revalidate: 30 }, // Cache for 30 seconds
+      cache: 'no-store', // Disable caching for real-time data
     });
 
     if (!response.ok) {

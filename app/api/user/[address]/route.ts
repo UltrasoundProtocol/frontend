@@ -58,7 +58,7 @@ export async function GET(
         query: USER_QUERY,
         variables: { address },
       }),
-      next: { revalidate: 30 }, // Cache for 30 seconds
+      cache: 'no-store', // Disable caching for real-time data
     });
 
     if (!response.ok) {
