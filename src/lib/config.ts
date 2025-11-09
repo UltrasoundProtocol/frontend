@@ -18,16 +18,16 @@ const MAINNET_POOLS = {
   PAXG_USDC: '0x5aE13BAAEF0620FdaE1D355495Dc51a17adb4082' as `0x${string}`,
 } as const;
 
-// Sepolia testnet addresses (deployed for testing - Updated 2025-10-29)
+// Sepolia testnet addresses (deployed for testing - Updated 2025-11-09)
 const SEPOLIA_CONTRACTS = {
-  VAULT: '0xA22A426896291f7b8425A617790541B1d7846E49' as `0x${string}`,
-  LP_TOKEN: '0x138c006EbdccDd427Be31CA80ed13E656DDdc5D1' as `0x${string}`,
-  WBTC: '0x3d86d71cCe39CfC7ab547289fdE21D0c3B182Cb1' as `0x${string}`,
-  PAXG: '0xCa61a2012B0D28D5eC6F2985cA1014aE7EBad644' as `0x${string}`,
-  USDC: '0x15c3892E7F6C1fD070cb1f381D01be335F364243' as `0x${string}`,
-  FEE_COLLECTOR: '0x132C753CD4e45b95A50Cb2DC49257f176b79e494' as `0x${string}`,
-  ORACLE: '0x47cFF4Fd8A7dAEA40bC38DeF49972706AA6Afdc6' as `0x${string}`,  // MockPriceOracle with dynamic prices from bot
-  REBALANCER: '0x4b7967C4F76B5A5522d2ba8f8Ed705C5b34530C7' as `0x${string}`,
+  VAULT: '0xf6ffB0B21d4c175A186F6d1Ec3b9F334583AF7dB' as `0x${string}`,
+  LP_TOKEN: '0xFeAd78878B32411965765C34b19C70D5A6b6994A' as `0x${string}`,
+  WBTC: '0x5009734C3fD390fc800A67972A374410ef8fdc9b' as `0x${string}`,
+  PAXG: '0xE71daD6C3DcDBeFD1f0BDf93ba6d8021dBcCC926' as `0x${string}`,
+  USDC: '0x20585140024f29C486F9267EB2A7CbD216f48856' as `0x${string}`,
+  FEE_COLLECTOR: '0xd899ce2A3659635849dB19F2C72082743e9333A6' as `0x${string}`,
+  ORACLE: '0x5075B552f6B8B1251d006DAa081a66E3Df1B57a8' as `0x${string}`,  // MockPriceOracle with dynamic prices from bot
+  REBALANCER: '0x0Ab375e286Bd0810EdEE1Ffc066aabC361475db5' as `0x${string}`,
 } as const;
 
 const SEPOLIA_POOLS = {
