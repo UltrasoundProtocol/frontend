@@ -62,6 +62,12 @@ export default function Home() {
   const { holdings: userHoldings, refetch: refetchHoldings } = useHoldings(userAddress);
   const { deposits, withdrawals, refetch: refetchHistory } = useHistory(userAddress);
 
+  // Calculate value per LP token for withdrawal preview
+  const lpBalanceNum = parseFloat(lpBalance) || 0;
+  const valuePerLPToken = lpBalanceNum > 0 && gainLoss?.currentValue
+    ? gainLoss.currentValue / lpBalanceNum
+    : 1.0;
+
   // Fetch rebalance history
   const { rebalanceEvents } = useRebalanceHistory(10);
 
@@ -433,7 +439,7 @@ export default function Home() {
                   formData.amount
                     ? actionTab === 'deposit'
                       ? `~${(formData.amount * 0.98).toFixed(4)} BV-LP`
-                      : `~${(formData.amount * 0.98).toFixed(4)} USDC value`
+                      : `~$${(formData.amount * valuePerLPToken * 0.98).toFixed(2)} USDC value`
                     : undefined
                 }
                 disabled={isApprovePending || isDepositPending || isApproveConfirming || isDepositConfirming || isWithdrawPending || isWithdrawConfirming}
