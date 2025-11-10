@@ -35,7 +35,7 @@ export function GoldHeader({
                 alt={brand.name}
                 width={200}
                 height={40}
-                className="h-10 w-auto"
+                className="h-10 w-auto max-w-[130px] md:max-w-[200px]"
                 priority
               />
             ) : (
@@ -44,7 +44,7 @@ export function GoldHeader({
           </Link>
 
           {/* Connect Button */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 whitespace-nowrap">
             {connectButton}
           </div>
         </div>
