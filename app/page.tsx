@@ -184,10 +184,16 @@ export default function Home() {
       label: 'Current Proportion',
       value: protocolData ? (
         <>
-          <span className="block">WBTC {protocolData.currentProportion.wbtc.toFixed(0)}% / PAXG {protocolData.currentProportion.paxg.toFixed(0)}%</span>
-          <span className="block text-sm font-light text-muted-foreground mt-1">
+          <span className="flex items-center gap-2">
+            <Image src="/icons/BTC_Icon.svg" alt="WBTC" width={30} height={30} className="rounded-full" />
+            {protocolData.currentProportion.wbtc.toFixed(0)}% /
+            <Image src="/icons/XAUT_Icon.svg" alt="PAXG" width={30} height={30} className="rounded-full" />
+            {protocolData.currentProportion.paxg.toFixed(0)}%
+          </span>
+          <span className="block text-sm font-light text-muted-foreground mt-2">
             {protocolData.wbtcBalance.toFixed(4)} WBTC
-            <br />
+          </span>
+          <span className="block text-sm font-light text-muted-foreground mt-1">
             {protocolData.paxgBalance.toFixed(4)} PAXG
           </span>
         </>
