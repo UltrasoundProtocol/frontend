@@ -166,9 +166,9 @@ export default function Home() {
       label: 'Deviation',
       value: protocolData ? (
         <>
-          Vault Ratio: {protocolData.ratioDeviation.toFixed(2)}%
+          {protocolData.ratioDeviation.toFixed(2)}%
           <br />
-          Price Ratio: {protocolData.priceDeviation.toFixed(2)}%
+          {/* Price Ratio: {protocolData.priceDeviation.toFixed(2)}% */}
         </>
       ) : (
         <>
@@ -258,10 +258,10 @@ export default function Home() {
   // Transform daily snapshots into chart data based on selected metric
   const chartSeries = rawProtocolData?.dailySnapshots
     ? transformDailySnapshotsToChartData(
-        rawProtocolData.dailySnapshots,
-        selectedMetric,
-        rawProtocolData.apy // Pass current APY for flat line comparison
-      )
+      rawProtocolData.dailySnapshots,
+      selectedMetric,
+      rawProtocolData.apy // Pass current APY for flat line comparison
+    )
     : [];
 
   // Extract x-axis labels from snapshots
