@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# Claude AI files
+.claude/
+CLAUDE.md
+*_SUMMARY.md
+FIXES_APPLIED.md
+HOOKS_INTEGRATION.md
+GAS_LIMIT_ISSUE_RESOLUTION.md

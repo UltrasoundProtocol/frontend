@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount } from 'wagmi';
 import { toast } from 'sonner';
 import { GoldShell } from '@/src/features/goldbtc/components/layout/gold-shell';
 import { GoldHeader } from '@/src/features/goldbtc/components/layout/gold-header';
@@ -17,55 +18,231 @@ import { PositionCard } from '@/src/features/goldbtc/components/position/positio
 import { ActionTabs } from '@/src/features/goldbtc/components/action/action-tabs';
 import { ActionForm } from '@/src/features/goldbtc/components/action/action-form';
 import { RecentTxList } from '@/src/features/goldbtc/components/transactions/recent-tx-list';
-import { shortAddr } from '@/src/features/goldbtc/utils/format';
+import { shortAddr, fromUSDC, fromBigDecimal } from '@/src/features/goldbtc/utils/format';
+import { transformDailySnapshotsToChartData, extractChartLabels } from '@/src/features/goldbtc/utils/chartData';
 import type { MetricKey } from '@/src/features/goldbtc/types';
+import {
+  useCompleteProtocolData,
+  useProtocolData,
+  useTotalBalance,
+  useUserAPY,
+  useGainLoss,
+  useHoldings,
+  useHistory,
+  useUSDCBalance,
+  useWBTCBalance,
+  usePAXGBalance,
+  useVaultDeposit,
+  useVaultWithdraw,
+  useRebalanceHistory,
+} from '@/src/hooks';
+import { CONTRACTS } from '@/src/lib/config';
 
 export default function Home() {
   const [selectedMetric, setSelectedMetric] = useState<MetricKey>('tvl');
   const [actionTab, setActionTab] = useState<'deposit' | 'withdraw'>('deposit');
   const [formData, setFormData] = useState({
     amount: undefined as number | undefined,
-    asset: 'USDC',
   });
+  const [needsApproval, setNeedsApproval] = useState(true);
+
+  // Get connected wallet address
+  const { address: userAddress } = useAccount();
+
+  // Fetch protocol data
+  const { data: protocolData } = useCompleteProtocolData();
+
+  // Also get raw protocol data for dailySnapshots
+  const { protocolData: rawProtocolData } = useProtocolData();
+
+  // Fetch user-specific data (only if wallet is connected)
+  const { lpBalance, refetch: refetchBalance } = useTotalBalance(userAddress);
+  const { userAPY, refetch: refetchAPY } = useUserAPY(userAddress);
+  const { gainLoss, refetch: refetchGainLoss } = useGainLoss(userAddress);
+  const { holdings: userHoldings, refetch: refetchHoldings } = useHoldings(userAddress);
+  const { deposits, withdrawals, refetch: refetchHistory } = useHistory(userAddress);
+
+  // Calculate value per LP token for withdrawal preview
+  const lpBalanceNum = parseFloat(lpBalance) || 0;
+  const valuePerLPToken = lpBalanceNum > 0 && gainLoss?.currentValue
+    ? gainLoss.currentValue / lpBalanceNum
+    : 1.0;
+
+  // Fetch rebalance history
+  const { rebalanceEvents } = useRebalanceHistory(10);
+
+  // Fetch token balances for deposit/withdraw
+  const { balanceFormatted: usdcBalance, refetch: refetchUSDC } = useUSDCBalance();
+  const { refetch: refetchWBTC } = useWBTCBalance();
+  const { refetch: refetchPAXG } = usePAXGBalance();
+
+  // Contract interaction hooks
+  const {
+    depositUSDC,
+    executeDeposit,
+    isApprovePending,
+    isDepositPending,
+    isApproveConfirming,
+    isDepositConfirming,
+    isApproveConfirmed,
+    isDepositConfirmed,
+  } = useVaultDeposit();
+
+  const {
+    withdrawFromVault,
+    isWithdrawPending,
+    isWithdrawConfirming,
+    isWithdrawConfirmed,
+  } = useVaultWithdraw();
+
+  // Handle approval confirmation and auto-execute deposit
+  useEffect(() => {
+    if (isApproveConfirmed && needsApproval && formData.amount) {
+      setNeedsApproval(false);
+      toast.success('Approval confirmed! Executing deposit...');
+      executeDeposit(formData.amount);
+    }
+  }, [isApproveConfirmed, needsApproval, formData.amount, executeDeposit]);
+
+  // Helper function to refetch all data after transactions
+  const refetchAllData = () => {
+    // Refetch token balances
+    refetchUSDC();
+    refetchWBTC();
+    refetchPAXG();
+
+    // Refetch user data from subgraph (if connected)
+    if (userAddress) {
+      refetchBalance?.();
+      refetchAPY?.();
+      refetchGainLoss?.();
+      refetchHoldings?.();
+      refetchHistory?.();
+    }
+  };
+
+  // Handle deposit confirmation
+  useEffect(() => {
+    if (isDepositConfirmed) {
+      toast.success('Deposit confirmed! Your LP tokens have been minted.');
+      setNeedsApproval(true); // Reset for next deposit
+      setFormData({ amount: undefined }); // Clear form
+      // Refresh all data after 3 seconds (allow time for subgraph to index)
+      setTimeout(() => {
+        refetchAllData();
+      }, 3000);
+    }
+  }, [isDepositConfirmed]);
+
+  // Handle withdrawal confirmation
+  useEffect(() => {
+    if (isWithdrawConfirmed) {
+      toast.success('Withdrawal confirmed! Assets have been sent to your wallet.');
+      setFormData({ amount: undefined }); // Clear form
+      // Refresh all data after 3 seconds (allow time for subgraph to index)
+      setTimeout(() => {
+        refetchAllData();
+      }, 3000);
+    }
+  }, [isWithdrawConfirmed]);
 
   // Full contract address
-  const contractAddress = '0x7027DeB280C03AedE961f2c620BE72B3F684fBa';
+  const contractAddress = CONTRACTS.VAULT;
 
-  // Mock data
+  // Prepare KPI data
   const kpiItems = [
     {
       label: 'TVL',
-      value: '$35,210,260.18',
+      value: protocolData?.tvlFormatted || '$0.00',
       icon: <Image src="/icons/TVL_Icon.svg" alt="TVL" width={16} height={16} />,
     },
     {
       label: 'Protocol APY',
-      value: '10.01%',
-      trend: 'up' as const,
-      hint: '+0.5%',
+      value: protocolData ? `${protocolData.protocolAPY.toFixed(2)}%` : '0.00%',
+      trend: protocolData && protocolData.protocolAPY > 0 ? ('up' as const) : ('none' as const),
       icon: <Image src="/icons/APY_Icon.svg" alt="APY" width={16} height={16} />,
     },
     {
       label: 'Deviation',
-      value: '+0.35%',
-      trend: 'up' as const,
+      value: protocolData ? (
+        <>
+          Vault Ratio: {protocolData.ratioDeviation.toFixed(2)}%
+          <br />
+          Price Ratio: {protocolData.priceDeviation.toFixed(2)}%
+        </>
+      ) : (
+        <>
+          Ratio: 0.00%
+          <br />
+          Price: 0.00%
+        </>
+      ),
+      trend: protocolData && protocolData.ratioDeviation > 2 ? ('up' as const) : ('none' as const),
       icon: <Image src="/icons/Deviation_Icon.svg" alt="Deviation" width={16} height={16} />,
     },
     {
       label: 'Current Proportion',
-      value: 'WBTC 65% / XAUT 35%',
+      value: protocolData ? (
+        <>
+          <span className="block">WBTC {protocolData.currentProportion.wbtc.toFixed(0)}% / PAXG {protocolData.currentProportion.paxg.toFixed(0)}%</span>
+          <span className="block text-sm font-light text-muted-foreground mt-1">
+            {protocolData.wbtcBalance.toFixed(4)} WBTC
+            <br />
+            {protocolData.paxgBalance.toFixed(4)} PAXG
+          </span>
+        </>
+      ) : (
+        'WBTC 50% / PAXG 50%'
+      ),
       icon: <Image src="/icons/Proportion_Icon.svg" alt="Proportion" width={16} height={16} />,
     },
   ];
 
-  const tokenPrices = [
-    { symbol: 'WBTC', price: 68478.32, changePct: -0.12, iconSrc: '/icons/BTC_Icon.svg' },
-    { symbol: 'XAUT', price: 2034.87, changePct: 0.23, iconSrc: '/icons/XAUT_Icon.svg' },
-  ];
+  const tokenPrices = protocolData
+    ? [
+      {
+        symbol: 'WBTC',
+        price: protocolData.wbtcPrice,
+        changePct: protocolData.wbtcPriceChange,
+        iconSrc: '/icons/BTC_Icon.svg',
+      },
+      {
+        symbol: 'PAXG',
+        price: protocolData.paxgPrice,
+        changePct: protocolData.paxgPriceChange,
+        iconSrc: '/icons/XAUT_Icon.svg',
+      },
+    ]
+    : [
+      // Placeholder data while loading
+      {
+        symbol: 'WBTC',
+        price: 0,
+        changePct: 0,
+        iconSrc: '/icons/BTC_Icon.svg',
+      },
+      {
+        symbol: 'PAXG',
+        price: 0,
+        changePct: 0,
+        iconSrc: '/icons/XAUT_Icon.svg',
+      },
+    ];
 
   const poolInfo = [
-    { label: '24h Volume' as const, value: '$2,847,392.45' },
-    { label: 'Pool TVL' as const, value: '$35,210,260.18' },
+    {
+      label: '24h Volume' as const,
+      value: protocolData
+        ? `$${parseFloat(protocolData.volume24h || '0').toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`
+        : '$0.00',
+    },
+    {
+      label: 'Pool TVL' as const,
+      value: protocolData?.tvlFormatted || '$0.00',
+    },
     {
       label: 'Contract Address' as const,
       value: shortAddr(contractAddress),
@@ -78,75 +255,117 @@ export default function Home() {
     },
   ];
 
-  const chartSeries = [
-    {
-      id: 'tvl',
-      label: 'TVL',
-      points: [
-        { x: 'Apr', y: 18 },
-        { x: 'May', y: 22 },
-        { x: 'Jun', y: 28 },
-        { x: 'Jul', y: 30 },
-        { x: 'Aug', y: 29 },
-        { x: 'Sep', y: 33 },
-        { x: 'Oct', y: 35 },
-      ],
-    },
-  ];
+  // Transform daily snapshots into chart data based on selected metric
+  const chartSeries = rawProtocolData?.dailySnapshots
+    ? transformDailySnapshotsToChartData(
+        rawProtocolData.dailySnapshots,
+        selectedMetric,
+        rawProtocolData.apy // Pass current APY for flat line comparison
+      )
+    : [];
 
-  const rebalanceHistory = [
-    {
-      date: 'Oct 15, 2024',
-      action: 'Rebalance',
-      route: 'WBTC → XAUT',
-      amount: '1.2 WBTC',
-    },
-    {
-      date: 'Oct 12, 2024',
-      action: 'Rebalance',
-      route: 'XAUT → WBTC',
-      amount: '43.3 XAUT',
-    },
-    {
-      date: 'Oct 8, 2024',
-      action: 'Rebalance',
-      route: 'WBTC → XAUT',
-      amount: '0.8 WBTC',
-    },
-  ];
+  // Extract x-axis labels from snapshots
+  const chartLabels = rawProtocolData?.dailySnapshots
+    ? extractChartLabels(rawProtocolData.dailySnapshots)
+    : [];
 
-  const holdings = [
-    { symbol: 'WBTC', qty: 0.1234, fiat: 8457.83 },
-    { symbol: 'XAUT', qty: 2.1, fiat: 4273.23 },
-    { symbol: 'LP Tokens', qty: 847.32, fiat: 847.32 },
-  ];
+  // Prepare user holdings data
+  const holdings = userHoldings && protocolData
+    ? [
+      {
+        symbol: 'WBTC',
+        qty: userHoldings.asset0Holdings,
+        fiat: userHoldings.asset0Holdings * protocolData.wbtcPrice,
+        iconSrc: '/icons/BTC_Icon.svg',
+      },
+      {
+        symbol: 'PAXG',
+        qty: userHoldings.asset1Holdings,
+        fiat: userHoldings.asset1Holdings * protocolData.paxgPrice,
+        iconSrc: '/icons/XAUT_Icon.svg',
+      },
+    ]
+    : [];
 
+  // Prepare recent transactions from history
   const recentTransactions = [
-    { type: 'Deposit', date: 'Oct 10, 2024', amount: '+$5,000', asset: 'USDC' },
-    { type: 'Deposit', date: 'Oct 5, 2024', amount: '+$1,000', asset: 'USDC' },
-  ];
+    ...deposits.slice(0, 5).map((deposit) => ({
+      type: 'Deposit',
+      date: new Date(parseInt(deposit.timestamp) * 1000).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+      amount: `${fromUSDC(deposit.stablecoinAmount).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} USDC`,
+      asset: 'USDC',
+    })),
+    ...withdrawals.slice(0, 5).map((withdrawal) => ({
+      type: 'Withdrawal',
+      date: new Date(parseInt(withdrawal.timestamp) * 1000).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+      amount: `$${fromBigDecimal(withdrawal.valueUSD || '0').toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
+      asset: 'WBTC+PAXG',
+    })),
+  ]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 10);
 
-  const handleFormChange = (fields: { amount?: number; asset?: string }) => {
+  const handleFormChange = (fields: { amount?: number }) => {
     setFormData((prev) => ({ ...prev, ...fields }));
   };
 
   const handleSelectPct = (pct: number) => {
-    const balance = 5000;
+    const balance = actionTab === 'deposit' ? usdcBalance : parseFloat(lpBalance) || 0;
     setFormData((prev) => ({
       ...prev,
       amount: (balance * pct) / 100,
     }));
   };
 
-  const handleSubmit = () => {
-    console.log('Submit:', actionTab, formData);
+  const handleSubmit = async () => {
+    if (!formData.amount || formData.amount <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+
+    if (!userAddress) {
+      toast.error('Please connect your wallet');
+      return;
+    }
+
+    try {
+      if (actionTab === 'deposit') {
+        // Only USDC deposits are supported
+        if (needsApproval) {
+          await depositUSDC(formData.amount);
+        } else {
+          await executeDeposit(formData.amount);
+        }
+        // Data will auto-refresh via useEffect when isDepositConfirmed becomes true
+      } else {
+        // Withdraw - returns both WBTC and PAXG
+        await withdrawFromVault(formData.amount);
+        // Data will auto-refresh via useEffect when isWithdrawConfirmed becomes true
+      }
+    } catch (error: any) {
+      console.error('Transaction error:', error);
+    }
   };
 
   return (
     <GoldShell
       header={
         <GoldHeader
-          brand={{ name: 'ULTRASOUND', href: '/' }}
+          brand={{ name: 'ULTRASOUND', logoSrc: '/Logo_inline.png', href: '/' }}
           connectButton={<ConnectButton />}
         />
       }
@@ -187,24 +406,24 @@ export default function Home() {
             <PerformanceChart
               metric={selectedMetric}
               series={chartSeries}
-              xLabels={['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct']}
+              xLabels={chartLabels}
               yLabel=""
             />
           </div>
 
           {/* Rebalance History */}
-          <RebalanceTable rows={rebalanceHistory} />
+          <RebalanceTable rows={rebalanceEvents} />
         </div>
 
         {/* Right Column - Sidebar */}
         <div className="space-y-6 lg:col-span-4">
           {/* Position */}
           <PositionCard
-            totalBalance={12847.32}
-            userApy={9.87}
-            pnl={847.32}
+            totalBalance={gainLoss?.currentValue || 0}
+            userApy={userAPY?.apy || 0}
+            pnl={gainLoss?.profit || 0}
             holdings={holdings}
-            lpTokens={847.32}
+            lpTokens={parseFloat(lpBalance) || 0}
           />
 
           {/* Deposit/Withdraw */}
@@ -213,15 +432,17 @@ export default function Home() {
               <ActionForm
                 kind={actionTab}
                 amount={formData.amount}
-                asset={formData.asset}
-                balance={5000}
-                min={10}
-                max={250000}
+                balance={actionTab === 'deposit' ? usdcBalance : parseFloat(lpBalance) || 0}
+                min={actionTab === 'deposit' ? 10 : 0.01}
+                max={actionTab === 'deposit' ? usdcBalance : parseFloat(lpBalance) || 0}
                 receivePreview={
                   formData.amount
-                    ? `${(formData.amount * 0.98).toFixed(2)} BTCGLD LP`
+                    ? actionTab === 'deposit'
+                      ? `~${(formData.amount * 0.98).toFixed(4)} BV-LP`
+                      : `~$${(formData.amount * valuePerLPToken * 0.98).toFixed(2)} USDC value`
                     : undefined
                 }
+                disabled={isApprovePending || isDepositPending || isApproveConfirming || isDepositConfirming || isWithdrawPending || isWithdrawConfirming}
                 onChange={handleFormChange}
                 onSelectPct={handleSelectPct}
                 onSubmit={handleSubmit}

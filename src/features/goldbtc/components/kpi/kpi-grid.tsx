@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 
 interface KpiCardProps {
   label: string;
-  value: string;
+  value: string | ReactNode;
   trend?: 'up' | 'down' | 'none';
   hint?: string;
   icon?: ReactNode;
