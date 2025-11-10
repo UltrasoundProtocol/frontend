@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Turbopack configuration for Next.js 16+
-  // Empty config to silence the warning about webpack config
+  // Empty config silences the webpack config warning as suggested by Next.js
   turbopack: {},
 
   // Keep webpack config for backward compatibility when using --webpack flag
