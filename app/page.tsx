@@ -396,11 +396,11 @@ export default function Home() {
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Left Column */}
-        <div className="space-y-6 lg:col-span-8">
+        <div className="space-y-6 lg:col-span-8 min-w-0">
           {/* Token & Pool Info */}
           <div className="grid gap-6 sm:grid-cols-2">
-            <TokenPriceList items={tokenPrices} />
-            <PoolInfoList items={poolInfo} />
+            <TokenPriceList items={tokenPrices} className="min-w-0" />
+            <PoolInfoList items={poolInfo} className="min-w-0" />
           </div>
 
           {/* Chart Section */}
@@ -422,7 +422,7 @@ export default function Home() {
         </div>
 
         {/* Right Column - Sidebar */}
-        <div className="space-y-6 lg:col-span-4">
+        <div className="space-y-6 lg:col-span-4 min-w-0">
           {/* Position */}
           <PositionCard
             totalBalance={gainLoss?.currentValue || 0}

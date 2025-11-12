@@ -1,16 +1,20 @@
 'use client';
 
+import * as React from 'react';
 import '@rainbow-me/rainbowkit/styles.css';
 import {
   getDefaultConfig,
   RainbowKitProvider,
   getDefaultWallets,
-  lightTheme
+  lightTheme,
+  darkTheme
 } from '@rainbow-me/rainbowkit';
 import { rabbyWallet } from '@rainbow-me/rainbowkit/wallets';
 import { WagmiProvider } from 'wagmi';
 import { mainnet, sepolia, polygon, optimism, arbitrum, base } from 'wagmi/chains';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
+import { ThemeProvider } from '@/components/theme-provider';
+import { useTheme } from 'next-themes';
 
 const { wallets } = getDefaultWallets();
 
@@ -33,19 +37,46 @@ const config = getDefaultConfig({
 
 const queryClient = new QueryClient();
 
+function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const rainbowTheme = mounted && resolvedTheme === 'dark'
+    ? darkTheme({
+        accentColor: '#D4AF37',
+        accentColorForeground: 'white',
+      })
+    : lightTheme({
+        accentColor: '#D4AF37',
+        accentColorForeground: 'white',
+      });
+
+  return (
+    <RainbowKitProvider theme={rainbowTheme}>
+      {children}
+    </RainbowKitProvider>
+  );
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider
-          theme={lightTheme({
-            accentColor: '#D4AF37',
-            accentColorForeground: 'white',
-          })}
-        >
-          {children}
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <WagmiProvider config={config}>
+        <QueryClientProvider client={queryClient}>
+          <RainbowKitThemeWrapper>
+            {children}
+          </RainbowKitThemeWrapper>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </ThemeProvider>
   );
 }

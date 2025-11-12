@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 interface GoldHeaderProps {
   brand: {
@@ -43,8 +44,9 @@ export function GoldHeader({
             )}
           </Link>
 
-          {/* Connect Button */}
+          {/* Theme Toggle and Connect Button */}
           <div className="flex items-center gap-4 whitespace-nowrap">
+            <ThemeToggle />
             {connectButton}
           </div>
         </div>

@@ -9,7 +9,7 @@ interface HoldingRowProps {
 
 export function HoldingRow({ holding, className }: HoldingRowProps) {
   return (
-    <div className={cn('flex items-center justify-between py-2', className)}>
+    <div className={cn('flex items-center justify-between px-4 py-2', className)}>
       <div className="flex items-center gap-3">
         {holding.iconSrc && (
           <img

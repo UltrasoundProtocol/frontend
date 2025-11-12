@@ -22,9 +22,9 @@ export function PerformanceChart({
 }: PerformanceChartProps) {
   // Calculate dimensions and scales
   const { width, height, padding, points, yMin, yMax, xStep } = useMemo(() => {
-    const w = 800;
-    const h = 300;
-    const p = { top: 20, right: 20, bottom: 40, left: 60 };
+    const w = 100; // Use percentage-based viewBox
+    const h = 37.5; // Maintain 800:300 aspect ratio (300/800 * 100)
+    const p = { top: 2.5, right: 2.5, bottom: 5, left: 7.5 }; // Scale padding proportionally
 
     if (!series.length || !series[0].points.length) {
       return {
@@ -86,10 +86,11 @@ export function PerformanceChart({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        <div className="w-full">
           <svg
             viewBox={`0 0 ${width} ${height}`}
-            className="w-full"
+            className="w-full h-auto"
+            preserveAspectRatio="xMidYMid meet"
             role="img"
             aria-label={`${metric} performance chart`}
           >
@@ -121,11 +122,12 @@ export function PerformanceChart({
               return (
                 <text
                   key={ratio}
-                  x={padding.left - 10}
+                  x={padding.left - 1.25}
                   y={y}
                   textAnchor="end"
                   alignmentBaseline="middle"
-                  className="fill-muted-foreground text-xs"
+                  fontSize="1.5"
+                  className="fill-muted-foreground"
                 >
                   {value.toFixed(1)}
                 </text>
@@ -140,9 +142,10 @@ export function PerformanceChart({
                   <text
                     key={i}
                     x={x}
-                    y={height - padding.bottom + 20}
+                    y={height - padding.bottom + 2.5}
                     textAnchor="middle"
-                    className="fill-muted-foreground text-xs"
+                    fontSize="1.5"
+                    className="fill-muted-foreground"
                   >
                     {label}
                   </text>
