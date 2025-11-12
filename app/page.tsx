@@ -166,9 +166,9 @@ export default function Home() {
       label: 'Deviation',
       value: protocolData ? (
         <>
-          Vault Ratio: {protocolData.ratioDeviation.toFixed(2)}%
+          {protocolData.ratioDeviation.toFixed(2)}%
           <br />
-          Price Ratio: {protocolData.priceDeviation.toFixed(2)}%
+          {/* Price Ratio: {protocolData.priceDeviation.toFixed(2)}% */}
         </>
       ) : (
         <>
@@ -184,10 +184,16 @@ export default function Home() {
       label: 'Current Proportion',
       value: protocolData ? (
         <>
-          <span className="block">WBTC {protocolData.currentProportion.wbtc.toFixed(0)}% / PAXG {protocolData.currentProportion.paxg.toFixed(0)}%</span>
-          <span className="block text-sm font-light text-muted-foreground mt-1">
+          <span className="flex items-center gap-2">
+            <Image src="/icons/BTC_Icon.svg" alt="WBTC" width={30} height={30} className="rounded-full" />
+            {protocolData.currentProportion.wbtc.toFixed(0)}% /
+            <Image src="/icons/XAUT_Icon.svg" alt="PAXG" width={30} height={30} className="rounded-full" />
+            {protocolData.currentProportion.paxg.toFixed(0)}%
+          </span>
+          <span className="block text-sm font-light text-muted-foreground mt-2">
             {protocolData.wbtcBalance.toFixed(4)} WBTC
-            <br />
+          </span>
+          <span className="block text-sm font-light text-muted-foreground mt-1">
             {protocolData.paxgBalance.toFixed(4)} PAXG
           </span>
         </>
@@ -258,10 +264,10 @@ export default function Home() {
   // Transform daily snapshots into chart data based on selected metric
   const chartSeries = rawProtocolData?.dailySnapshots
     ? transformDailySnapshotsToChartData(
-        rawProtocolData.dailySnapshots,
-        selectedMetric,
-        rawProtocolData.apy // Pass current APY for flat line comparison
-      )
+      rawProtocolData.dailySnapshots,
+      selectedMetric,
+      rawProtocolData.apy // Pass current APY for flat line comparison
+    )
     : [];
 
   // Extract x-axis labels from snapshots
@@ -390,11 +396,11 @@ export default function Home() {
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Left Column */}
-        <div className="space-y-6 lg:col-span-8">
+        <div className="space-y-6 lg:col-span-8 min-w-0">
           {/* Token & Pool Info */}
           <div className="grid gap-6 sm:grid-cols-2">
-            <TokenPriceList items={tokenPrices} />
-            <PoolInfoList items={poolInfo} />
+            <TokenPriceList items={tokenPrices} className="min-w-0" />
+            <PoolInfoList items={poolInfo} className="min-w-0" />
           </div>
 
           {/* Chart Section */}
@@ -416,7 +422,7 @@ export default function Home() {
         </div>
 
         {/* Right Column - Sidebar */}
-        <div className="space-y-6 lg:col-span-4">
+        <div className="space-y-6 lg:col-span-4 min-w-0">
           {/* Position */}
           <PositionCard
             totalBalance={gainLoss?.currentValue || 0}
