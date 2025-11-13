@@ -24,7 +24,7 @@ const network = process.env.NEXT_PUBLIC_NETWORK || 'mainnet';
 const config = getDefaultConfig({
   appName: 'ULTRASOUND',
   projectId: '4ce72830a3a245beb89f7b75fac12100',
-  chains: network === 'sepolia' ? [sepolia, mainnet] : [mainnet, sepolia],
+  chains: network === 'sepolia' ? [sepolia] : [mainnet],
   wallets: [
     ...wallets,
     {
@@ -47,13 +47,13 @@ function RainbowKitThemeWrapper({ children }: { children: React.ReactNode }) {
 
   const rainbowTheme = mounted && resolvedTheme === 'dark'
     ? darkTheme({
-        accentColor: '#D4AF37',
-        accentColorForeground: 'white',
-      })
+      accentColor: '#D4AF37',
+      accentColorForeground: 'white',
+    })
     : lightTheme({
-        accentColor: '#D4AF37',
-        accentColorForeground: 'white',
-      });
+      accentColor: '#D4AF37',
+      accentColorForeground: 'white',
+    });
 
   return (
     <RainbowKitProvider theme={rainbowTheme}>
