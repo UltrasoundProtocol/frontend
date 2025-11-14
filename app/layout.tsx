@@ -17,6 +17,25 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ULTRASOUND",
   description: "A BTC GOLD Strategy by LinhLabs",
+  openGraph: {
+    title: "ULTRASOUND",
+    description: "A BTC GOLD Strategy by LinhLabs",
+    images: [
+      {
+        url: "/Preview.png",
+        width: 976,
+        height: 976,
+        alt: "ULTRASOUND - BTC GOLD Strategy",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ULTRASOUND",
+    description: "A BTC GOLD Strategy by LinhLabs",
+    images: ["/Preview.png"],
+  },
 };
 
 export default function RootLayout({
