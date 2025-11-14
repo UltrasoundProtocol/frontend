@@ -23,8 +23,8 @@ export const metadata: Metadata = {
     images: [
       {
         url: "/Preview.png",
-        width: 976,
-        height: 976,
+        width: 1200,
+        height: 630,
         alt: "ULTRASOUND - BTC GOLD Strategy",
       },
     ],
