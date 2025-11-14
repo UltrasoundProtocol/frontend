@@ -61,9 +61,8 @@ export default function Home() {
         </>
       ) : (
         <>
-          Ratio: 0.00%
-          <br />
-          Price: 0.00%
+          0.00%
+
         </>
       ),
       trend: protocolData && protocolData.ratioDeviation > 2 ? ('up' as const) : ('none' as const),
