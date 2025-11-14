@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/theme-toggle';
 
@@ -21,6 +22,13 @@ export function GoldHeader({
   connectButton,
   className,
 }: GoldHeaderProps) {
+  const pathname = usePathname();
+
+  const navLinks = [
+    { href: '/', label: 'Vault' },
+    { href: '/portfolio', label: 'Portfolio' },
+  ];
+
   return (
     <header className={cn('border-b bg-background', className)}>
       <div className="mx-auto max-w-7xl px-4 lg:px-8">
@@ -36,7 +44,7 @@ export function GoldHeader({
                 alt={brand.name}
                 width={200}
                 height={40}
-                className="h-auto w-auto max-w-[130px] md:max-w-[200px]"
+                className="h-auto w-auto max-w-[150px] md:max-w-[200px]"
                 priority
               />
             ) : (
@@ -44,12 +52,48 @@ export function GoldHeader({
             )}
           </Link>
 
+          {/* Navigation */}
+          <nav className="hidden md:flex items-center gap-6">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  'text-sm font-medium transition-colors hover:text-primary',
+                  pathname === link.href
+                    ? 'text-foreground border-b-2 border-primary pb-1'
+                    : 'text-muted-foreground'
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+
           {/* Theme Toggle and Connect Button */}
           <div className="flex items-center gap-4 whitespace-nowrap">
             <ThemeToggle />
             {connectButton}
           </div>
         </div>
+
+        {/* Mobile Navigation */}
+        <nav className="flex md:hidden items-center gap-4 pb-3">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                'text-sm font-medium transition-colors hover:text-primary',
+                pathname === link.href
+                  ? 'text-foreground border-b-2 border-primary pb-1'
+                  : 'text-muted-foreground'
+              )}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
       </div>
     </header>
   );
